@@ -215,6 +215,3 @@ stompClient.subscribe('/user/queue/mention', (mention) => {
 - **통합 테스트**로 API 동작 검증
 - **테스트 커버리지** 80% 이상 유지 목표
 
-## 📞 연락처
-
-프로젝트와 관련된 문의사항이 있으시면 이슈를 생성해 주세요.
