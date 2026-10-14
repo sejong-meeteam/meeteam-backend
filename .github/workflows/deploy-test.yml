@@ -1,0 +1,89 @@
+name: Deploy to Test EC2
+
+on:
+  push:
+    branches:
+      - test-server
+
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Github Repository 파일 불러오기
+        uses: actions/checkout@v4
+
+      - name: JDK 17버전 설치
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: 빌드하기 (테스트 제외)
+        run: ./gradlew clean build -x test
+
+      - name: AWS credentials 설정
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-2
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: ECR에 로그인
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Docker 이미지 생성
+        run: docker build -t meeteam-server .
+
+      # 운영(:latest)과 겹치지 않도록 :test 태그 사용
+      - name: Docker 이미지에 Tag 붙이기
+        run: docker tag meeteam-server ${{ steps.login-ecr.outputs.registry }}/meeteam-server:test
+
+      - name: ECR에 Docker 이미지 Push
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/meeteam-server:test
+
+      - name: compose 파일 전송
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.TEST_EC2_HOST }}
+          username: ${{ secrets.TEST_EC2_USERNAME }}
+          key: ${{ secrets.TEST_EC2_PRIVATE_KEY }}
+          source: "compose-test.yml"
+          target: "/home/ubuntu/meeteam/"
+          overwrite: true
+
+      - name: ECR 토큰(비밀번호) 획득
+        id: ecr-token
+        run: echo "password=$(aws ecr get-login-password --region ap-northeast-2)" >> $GITHUB_OUTPUT
+
+      - name: SSH로 테스트 EC2 배포 (단일 컨테이너 교체)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_PASSWORD: ${{ steps.ecr-token.outputs.password }}
+        with:
+          host: ${{ secrets.TEST_EC2_HOST }}
+          username: ${{ secrets.TEST_EC2_USERNAME }}
+          key: ${{ secrets.TEST_EC2_PRIVATE_KEY }}
+          envs: ECR_REGISTRY,ECR_PASSWORD
+          script_stop: true
+          script: |
+            set -e
+            cd /home/ubuntu/meeteam
+            echo $ECR_PASSWORD | docker login --username AWS --password-stdin $ECR_REGISTRY
+            # 최신 :test 이미지 받기 (mysql/redis 는 up 시 자동 pull)
+            docker compose -f compose-test.yml pull meeteam-test
+            # 앱 컨테이너만 새 이미지로 재생성, DB/Redis 는 유지
+            docker compose -f compose-test.yml up -d
+            # 헬스체크 (최대 약 2분 대기)
+            for i in $(seq 1 24); do
+              if curl -sf http://localhost:8080/actuator/health > /dev/null; then
+                echo "Health check 성공"; break
+              fi
+              echo "Health check 재시도 ($i/24)..."; sleep 5
+              if [ "$i" = "24" ]; then echo "Health check 실패"; exit 1; fi
+            done
+            docker image prune -f
