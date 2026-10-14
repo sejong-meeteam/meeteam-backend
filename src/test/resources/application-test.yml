@@ -1,0 +1,89 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      mode: never  # data.sql 실행 비활성화 (테스트에서는 필요 없음)
+  flyway:
+    enabled: false  # 테스트는 H2 + ddl-auto:create-drop 사용
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+cloud:
+  aws:
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key
+    region:
+      static: us-east-1
+    s3:
+      enabled: false
+      bucket: test-bucket
+
+file:
+  dir: /tmp/meeteam-test
+  upload:
+    allowed-extensions: jpg,jpeg,png,gif,webp
+    max-size: 5MB
+    s3:
+      base-url: http://localhost/test-bucket
+
+jwt:
+  secret-key: dGhpc2lzYXverybG9uZ3NlY3JldGtleXRvc2F0aXNmeWhtYWNzaGEyNTZyZXF1aXJlbWVudHM= # Base64 encoded dummy key
+  access-exp-time: 3600000
+  refresh-exp-time: 86400000
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
+
+security:
+  whitelist:
+    - method: "*"
+      uri: /api/v1/auth/**
+    - method: "*"
+      uri: /actuator/**
+    - method: GET
+      uri: /api/projects/**
+    - method: GET
+      uri: /api/v1/projects/**
+    - method: GET
+      uri: /api/v1/jobs/options
+    - method: GET
+      uri: /api/v1/main/**
+
+app:
+  cookie:
+    domain: # 테스트에서는 비워둠
+    secure: false
+    same-site: Lax
+
+# CORS 설정
+cors:
+  allowed-origins:
+    - http://localhost:3000
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed-headers:
+    - "*"
+  exposed-headers:
+    - Authorization
+  allow-credentials: true
+  max-age: 3600
