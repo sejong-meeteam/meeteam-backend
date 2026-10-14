@@ -1,0 +1,134 @@
+spring:
+    datasource:
+        url: ${DATASOURCE_URL}
+        username: ${DATASOURCE_USERNAME}
+        password: ${DATASOURCE_PASSWORD}
+        driver-class-name: com.mysql.cj.jdbc.Driver
+
+    flyway:
+        enabled: true
+        baseline-on-migrate: true  # 기존 DB에 처음 적용 시 필요
+        baseline-version: 0        # 기존 스키마를 버전 0으로 취급
+        locations: classpath:db/migration
+        validate-on-migrate: true
+
+    jpa:
+        hibernate:
+            ddl-auto: validate  # Flyway가 스키마 관리, JPA는 검증만
+        show-sql: true
+        defer-datasource-initialization: false  # Flyway 사용 시 false
+        properties:
+            hibernate:
+                format_sql: true
+                default_batch_fetch_size: 500
+        open-in-view: false
+    sql:
+        init:
+            mode: never
+            data-locations: classpath:db/seed/job-seed.sql
+    data:
+        redis:
+            host: redis
+            port: 6379
+
+    # 파일 업로드(멀티파트) 한도 - Boot 기본값(1MB)은 모바일 사진에 너무 작아 등록 실패를 유발함
+    # 초과 시 MaxUploadSizeExceededException → GlobalExceptionHandler에서 413(FILE413) 응답
+    servlet:
+        multipart:
+            max-file-size: 10MB
+            max-request-size: 12MB
+
+
+jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    access-exp-time: ${JWT_ACCESS_EXP_TIME:36000000}                # 액세스 토큰 만료 시간
+    refresh-exp-time: ${JWT_REFRESH_EXP_TIME:604800000}             # 리프레시 토큰 만료 시간
+
+
+# AWS S3 설정
+cloud:
+    aws:
+        credentials:
+            access-key: ${AWS_ACCESS_KEY_ID}
+            secret-key: ${AWS_SECRET_ACCESS_KEY}
+        s3:
+            bucket: ${S3_BUCKET:meeteam-bucket}
+        region:
+            static: ${AWS_REGION:ap-northeast-2}
+        stack:
+            auto: false
+
+# 파일 업로드 설정
+file:
+    dir: ${FILE_UPLOAD_DIR:/home/ubuntu/meeteam/upload}
+    upload:
+        max-size: 10MB
+        allowed-extensions: jpg,jpeg,png,gif,webp
+        s3:
+            base-url: https://${cloud.aws.s3.bucket}.s3.${cloud.aws.region.static}.amazonaws.com
+
+
+
+springdoc:
+    swagger-ui:
+        path: /swagger-ui.html
+    api-docs:
+        path: /v3/api-docs
+
+server:
+    servlet:
+        context-path: /
+    tomcat:
+        mbeanregistry:
+            enabled: true
+    forward-headers-strategy: framework
+
+
+management:
+    endpoints:
+        web:
+            exposure:
+                include:
+                    - "*"
+    endpoint:
+        health:
+            show-components: always
+
+app:
+    warmup:
+        enabled: true
+    cookie:
+        domain: .meeteam.alom-sejong.com
+        secure: true
+        same-site: None
+
+# CORS 설정 추가
+cors:
+    allowed-origins:
+        - https://meeteam-front-test.vercel.app  # 실제 Vercel 도메인으로 변경 필요
+        - https://*.vercel.app                   # Vercel 서브도메인들
+        - https://meeteam.alom-sejong.com        # Route53으로 설정한 프론트엔드 커스텀 도메인
+        - https://api.meeteam.alom-sejong.com    # 백엔드 도메인 (Swagger 등)
+        - http://localhost:3000                  # 로컬 개발용
+        - http://localhost:3001                  # 추가 로컬 개발용
+        - https://localhost:3000                 # 로컬 개발용 (HTTPS)
+        - http://dev.meeteam.alom-sejong.com:3000
+
+    allowed-methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+        - OPTIONS
+    allowed-headers:
+        - "*"
+    exposed-headers:
+        - Authorization
+        - Set-Cookie
+        - X-Total-Count
+    allow-credentials: true
+    max-age: 3600
+
+# security.whitelist는 PublicEndpoint enum으로 이동됨
+# 경로: global/config/PublicEndpoint.java

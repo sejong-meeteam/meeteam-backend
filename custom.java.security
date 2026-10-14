@@ -1,0 +1,6 @@
+# 세종대 포털 SSL 호환성을 위한 커스텀 보안 설정
+# 알고리즘 제한 최소화
+
+jdk.tls.disabledAlgorithms=SSLv3, RC4, DES, MD5withRSA, DH keySize < 1024, EC keySize < 224, 3DES_EDE_CBC, anon, NULL
+
+jdk.certpath.disabledAlgorithms=MD2, MD5, DSA keySize < 1024, RSA keySize < 1024

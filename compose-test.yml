@@ -1,0 +1,84 @@
+# 테스트 서버 전용 compose (단일 컨테이너 + MySQL/Redis 동봉)
+# t3.micro(1GB) 기준으로 메모리를 빡빡하게 튜닝했습니다.
+# 반드시 호스트에 swap(2GB 권장)을 먼저 잡아주세요. (README/가이드 참고)
+services:
+    meeteam-test:
+        image: 079892728769.dkr.ecr.ap-northeast-2.amazonaws.com/meeteam-server:test
+        container_name: meeteam-test
+        ports:
+            - "8080:8080"
+        env_file:
+            - .env
+        environment:
+            - SPRING_PROFILES_ACTIVE=test
+            # JVM 힙 제한 (Dockerfile 수정 없이 주입). t3.micro 기준 보수적으로.
+            - JAVA_TOOL_OPTIONS=-Xms128m -Xmx360m -XX:MaxMetaspaceSize=160m -XX:+UseSerialGC
+        depends_on:
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        volumes:
+            - ./files:/app/files
+        networks:
+            - meeteam-test-network
+        mem_limit: 600m
+        healthcheck:
+            test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
+            interval: 15s
+            timeout: 5s
+            retries: 5
+            start_period: 120s   # 마이그레이션+워밍업 시간 고려해 넉넉히
+        restart: unless-stopped
+
+    mysql:
+        image: mysql:8.0          # 운영 RDS와 메이저 버전 일치
+        container_name: meeteam-test-mysql
+        command:
+            - --innodb-buffer-pool-size=64M    # 기본 128M → 절반으로
+            - --performance-schema=OFF         # 메모리 큰 폭 절약
+            - --max-connections=30
+            - --skip-host-cache
+            - --character-set-server=utf8mb4
+            - --collation-server=utf8mb4_unicode_ci
+        environment:
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+            - MYSQL_DATABASE=${MYSQL_DATABASE}
+            - MYSQL_USER=${MYSQL_USER}
+            - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+            - TZ=Asia/Seoul
+        volumes:
+            - mysql_test_data:/var/lib/mysql   # 재시작에도 데이터 유지 (EC2/볼륨 삭제 시에는 소실)
+        networks:
+            - meeteam-test-network
+        mem_limit: 320m
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$$MYSQL_ROOT_PASSWORD"]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
+        restart: unless-stopped
+
+    redis:
+        image: redis:7
+        container_name: meeteam-test-redis
+        command: ["redis-server", "--appendonly", "yes", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+        volumes:
+            - redis_test_data:/data
+        networks:
+            - meeteam-test-network
+        mem_limit: 96m
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            retries: 20
+        restart: unless-stopped
+
+volumes:
+    mysql_test_data:
+    redis_test_data:
+
+networks:
+    meeteam-test-network:
+        driver: bridge
