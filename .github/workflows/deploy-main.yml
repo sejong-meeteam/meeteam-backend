@@ -1,0 +1,76 @@
+name: Main - minimal CI and test EC2 deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Do not interrupt a running container replacement. Keep at most the latest pending run.
+concurrency:
+  group: meeteam-test-main-deploy
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    if: github.repository == 'sejong-meeteam/meeteam-backend' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Minimal CI (no tests or lint)
+        run: echo "Minimal CI complete. Compilation and deployment are checked separately."
+
+  build:
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build deployable JAR (skip tests)
+        run: bash ./gradlew --no-daemon --max-workers=2 bootJar -x test
+      - name: Package only application files (never env files)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p payload/build/libs payload/scripts
+          cp build/libs/*SNAPSHOT.jar payload/build/libs/
+          cp Dockerfile custom.java.security payload/
+          cp scripts/deploy-main.sh payload/scripts/
+          printf '%s\n' "$GITHUB_SHA" > payload/REVISION
+          printf '.git\n.env*\nbackups/\n' > payload/.dockerignore
+          (cd payload && sha256sum Dockerfile custom.java.security REVISION build/libs/*SNAPSHOT.jar scripts/deploy-main.sh > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ github.sha }}
+          path: payload/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+          overwrite: true
+
+  deploy:
+    needs: build
+    if: github.repository == 'sejong-meeteam/meeteam-backend' && github.ref == 'refs/heads/main'
+    # Register an EC2 repository runner with the custom label meeteam-test.
+    # Never route pull_request workflows to this production-capable runner.
+    runs-on: [self-hosted, linux, X64, meeteam-test]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-${{ github.sha }}
+          path: payload
+      - name: Replace only the app, verify health, roll back on failure
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+          DEPLOY_RUN: ${{ github.run_id }}-${{ github.run_attempt }}
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/payload/scripts/deploy-main.sh" "$GITHUB_WORKSPACE/payload" "$DEPLOY_SHA" "$DEPLOY_RUN"

@@ -215,3 +215,10 @@ stompClient.subscribe('/user/queue/mention', (mention) => {
 - **통합 테스트**로 API 동작 검증
 - **테스트 커버리지** 80% 이상 유지 목표
 
+
+
+## main 테스트 서버 자동 배포
+
+`main` push → 최소 CI(테스트/린트 없음) → JAR 빌드 → 기존 EC2 앱 교체 → 상태 확인. 실패하면 이전 앱으로 복구합니다. DB·HTTPS·테스트 계정 비밀번호는 서버에 유지합니다.
+
+최초 runner 등록과 실행 방법은 [MAIN_AUTO_DEPLOY.md](docs/MAIN_AUTO_DEPLOY.md)를 참고하세요. runner를 등록하기 전에는 자동 배포가 활성화되지 않습니다.

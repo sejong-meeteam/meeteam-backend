@@ -49,6 +49,11 @@ src/main/resources/application.yml
 # log files
 
 .env
+.env.*
+!.env.test.example
+/.deploy/
+/backups/
+/actions-runner/
 
 /logs
 

@@ -38,6 +38,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,6 +66,8 @@ public class AuthService {
     private final TokenBlacklistRepository tokenBlacklistRepository;
     private final SejongCodeRepository sejongCodeRepository;
     private final SejongPortalClient sejongPortalClient;
+    // Present only with an explicitly enabled, non-production test profile.
+    private final ObjectProvider<TestAccountService> testAccountService;
 
     // CASCADE 삭제용 Repository
     private final QnaAnswerRepository qnaAnswerRepository;
@@ -85,6 +88,13 @@ public class AuthService {
      * @return 로그인 결과 (기존 회원: 토큰, 신규 회원: 코드)
      */
     public SejongLoginResult sejongLogin(SejongLoginCommand command) {
+        TestAccountService testAccount = testAccountService.getIfAvailable();
+        if (testAccount != null && TestAccountService.USERNAME.equals(command.studentId())) {
+            TokenExchangeResult tokens = testAccount.login(command.studentId(), command.password());
+            return SejongLoginResult.existingMember(tokens.getAccessToken(), tokens.getRefreshToken());
+        }
+
+        // All other accounts still require actual Sejong portal authentication.
         // 세종대 포털 인증
         sejongPortalClient.authenticate(command.studentId(), command.password());
 
