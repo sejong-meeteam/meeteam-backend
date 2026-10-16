@@ -26,8 +26,7 @@ MeeTeam은 개발자들이 팀을 구성하고 프로젝트를 협업할 수 있
 - **JWT (JSON Web Token)**
 - **Auth0 Java JWT**
 
-### AI & External Services
-- **Spring AI with OpenAI** - GPT-4o-mini 모델 활용
+### External Services
 - **AWS S3** - 파일 저장소
 
 ### Monitoring & DevOps
@@ -52,7 +51,6 @@ src/main/java/com/wardk/meeteam_backend/
 │   ├── chat/                              # 채팅 기능
 │   ├── codereview/                        # 코드 리뷰
 │   ├── file/                              # 파일 관리
-│   ├── llm/                               # AI/LLM 연동
 │   ├── member/                            # 회원 관리
 │   ├── notification/                      # 알림 시스템
 │   ├── pr/                                # Pull Request 관리
@@ -60,8 +58,7 @@ src/main/java/com/wardk/meeteam_backend/
 │   ├── projectLike/                       # 프로젝트 좋아요
 │   ├── projectMember/                     # 프로젝트 멤버 관리
 │   ├── review/                            # 리뷰 시스템
-│   ├── skill/                             # 기술 스택 관리
-│   └── webhook/                           # 웹훅 처리
+│   └── skill/                             # 기술 스택 관리
 ├── global/                                # 전역 설정 및 공통 기능
 └── web/                                   # 웹 계층 (컨트롤러)
 ```
@@ -112,13 +109,6 @@ Swagger UI를 통해 API 문서를 확인할 수 있습니다.
 - Access Token 기반 인증
 - 토큰 갱신 메커니즘 제공
 
-## 🤖 AI 기능
-
-OpenAI의 GPT-4o-mini 모델을 활용한 AI 기능을 제공합니다:
-- 코드 리뷰 자동화
-- 프로젝트 추천
-- 개발 관련 질의응답
-
 ## 📁 파일 저장
 
 AWS S3를 활용한 파일 업로드 및 관리 기능을 제공합니다.
@@ -136,9 +126,8 @@ AWS S3를 활용한 파일 업로드 및 관리 기능을 제공합니다.
   - 멘션(@username) 기능
   - 읽음/안읽음 상태 관리
   - 실시간 알림 시스템
-- **코드 리뷰**: AI 기반 자동 코드 리뷰 및 피드백
 - **알림 시스템**: 실시간 알림 및 푸시 알림
-- **GitHub 연동**: Pull Request 및 웹훅 연동
+- **GitHub 연동**: Pull Request 연동
 
 ## 💬 실시간 채팅 시스템
 
