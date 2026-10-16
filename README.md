@@ -1,46 +1,34 @@
 # MeeTeam Backend
 
-개발자들을 위한 팀 매칭 및 프로젝트 협업 플랫폼의 백엔드 서버입니다.
+세종대학교 구성원을 위한 프로젝트 모집 및 팀원 매칭 서비스의 백엔드입니다.
+Spring Boot 기반 REST API와 SSE 실시간 알림을 제공합니다.
 
-## 📋 프로젝트 개요
+## 기술 스택
 
-MeeTeam은 개발자들이 팀을 구성하고 프로젝트를 협업할 수 있도록 도와주는 플랫폼입니다. 이 저장소는 Spring Boot 기반의 백엔드 API 서버를 제공합니다.
+- **Java 17 / Spring Boot 3.4.5**
+- **Spring Data JPA / QueryDSL**: 데이터 접근 및 검색
+- **Spring Security / JWT(JJWT)**: 인증·인가 및 토큰 갱신
+- **MySQL / Redis**: 데이터 저장 및 캐시
+- **Swagger/OpenAPI / Lombok**: API 문서화 및 코드 생성
+- **Spring Boot Actuator**: 애플리케이션 상태 확인
+- **Docker / Docker Compose**: 애플리케이션 및 데이터 서비스 실행
+- **GitHub Actions**: 빌드 및 테스트 EC2 자동 배포
 
-## 🛠 기술 스택
+## 주요 기능
 
-### Core Framework
-- **Java 17**
-- **Spring Boot 3.4.5**
-- **Spring Data JPA**
-- **Spring Security**
-- **Spring WebSocket** - 실시간 채팅 기능
-- **Spring Messaging** - STOMP 프로토콜 지원
+- 세종대 포털 기반 로그인·가입, JWT 인증, 토큰 갱신 및 로그아웃
+- 회원 프로필 조회·수정 및 팀원 검색
+- 프로젝트 등록·조회·검색·수정·삭제 및 모집 상태 관리
+- 프로젝트 지원, 지원자 조회·승인·거절 및 지원 취소
+- 프로젝트 팀원 조회·관리 및 탈퇴
+- 프로젝트 좋아요
+- 프로젝트 Q&A 조회·질문·답변·삭제
+- 알림 목록·미확인 개수 조회 및 SSE 실시간 알림
+- 직무·기술 스택 정보 조회
 
-### Database & Cache
-- **MySQL** - 메인 데이터베이스
-- **Redis** - 캐시 및 세션 저장소
-- **QueryDSL** - 타입 세이프 쿼리
+기능 목록은 현재 소스에 구현된 API 기준입니다. 모든 화면과 배포 환경의 전체 시나리오 검증 완료를 의미하지는 않습니다.
 
-### Authentication & Authorization
-- **Spring OAuth2 Client** (Google, GitHub 로그인)
-- **JWT (JSON Web Token)**
-- **Auth0 Java JWT**
-
-### External Services
-- **AWS S3** - 파일 저장소
-
-### Monitoring & DevOps
-- **Prometheus** - 메트릭 수집
-- **Grafana** - 모니터링 대시보드
-- **Spring Actuator** - 애플리케이션 헬스체크
-- **Docker & Docker Compose**
-
-### Development Tools
-- **Swagger/OpenAPI 3** - API 문서화
-- **P6Spy** - SQL 로깅
-- **Lombok** - 코드 생성 자동화
-
-## 🏗 프로젝트 구조
+## 프로젝트 구조
 
 ```
 src/main/java/com/wardk/meeteam_backend/
@@ -61,151 +49,62 @@ src/main/java/com/wardk/meeteam_backend/
 └── web/                                   # API 컨트롤러·요청/응답 DTO
 ```
 
-## 🚀 시작하기
+## 빌드 및 실행 환경
 
-### 사전 요구사항
-- Java 17 이상
-- MySQL 8.0 이상
-- Redis 7.0 이상
-- Docker & Docker Compose (선택사항)
+- 빌드에는 Java 17과 저장소의 Gradle Wrapper를 사용합니다.
+- 테스트 환경은 MySQL 8.0과 Redis 7을 사용합니다.
+- 컨테이너 실행 및 자동 배포에는 Docker와 Docker Compose가 필요합니다.
+- DB·Redis·JWT·AWS 설정 등은 실행 환경에 맞게 별도로 준비해야 합니다. 환경변수 예시는 [.env.test.example](.env.test.example)을 참고합니다.
+- Spring 프로파일은 실행 환경에 맞게 지정합니다. 현재 테스트 배포는 `test` 프로파일을 사용합니다.
+- 비밀번호·키·토큰과 실제 환경변수 파일은 저장소에 올리지 않습니다.
 
+테스트를 제외하고 배포용 JAR를 빌드하는 명령은 다음과 같습니다.
 
-
-이 명령어로 다음 서비스들이 실행됩니다:
-- **MeeTeam Backend Server** (포트 8080)
-- **Redis** (포트 6379)
-- **Prometheus** (포트 9090)
-- **Grafana** (포트 3000)
-
-## 📊 모니터링
-
-### Prometheus
-- URL: http://localhost:9090
-- 애플리케이션 메트릭 수집
-
-### Grafana
-- URL: http://localhost:3000
-- 기본 계정: admin/admin
-- 시각화 대시보드 제공
-
-### Spring Actuator
-- Health Check: http://localhost:8080/actuator/health
-- Metrics: http://localhost:8080/actuator/metrics
-
-## 📚 API 문서
-
-Swagger UI를 통해 API 문서를 확인할 수 있습니다.
-- URL: http://localhost:8080/swagger-ui.html
-
-## 🔐 인증 방식
-
-### OAuth2 Social Login
-- **Google OAuth2**
-- **GitHub OAuth2**
-
-### JWT Token
-- Access Token 기반 인증
-- 토큰 갱신 메커니즘 제공
-
-## 📁 파일 저장
-
-AWS S3를 활용한 파일 업로드 및 관리 기능을 제공합니다.
-
-## 🔄 주요 기능
-
-- **팀 매칭**: 개발자들의 기술 스택과 관심사를 기반으로 한 팀 매칭
-- **프로젝트 관리**: 프로젝트 생성, 관리, 진행 상황 추적
-- **실시간 채팅**: WebSocket 기반 실시간 커뮤니케이션
-  - 프로젝트 팀 채팅방 (프로젝트 생성 시 자동 생성)
-  - 1:1 개인 채팅 (프로젝트 지원 전 질문 등)
-  - 주제별 채팅방 생성
-  - 실시간 메시지 전송/수정/삭제
-  - 타이핑 상태 표시
-  - 멘션(@username) 기능
-  - 읽음/안읽음 상태 관리
-  - 실시간 알림 시스템
-- **알림 시스템**: 실시간 알림 및 푸시 알림
-- **GitHub 연동**: Pull Request 연동
-
-## 💬 실시간 채팅 시스템
-
-### WebSocket 연결
-```javascript
-// 클라이언트 연결 예시
-const socket = new SockJS('/ws');
-const stompClient = Stomp.over(socket);
-
-// 채팅방 구독
-stompClient.subscribe('/topic/chat/{chatRoomId}', (message) => {
-    // 메시지 처리
-});
-
-// 개인 멘션 알림 구독
-stompClient.subscribe('/user/queue/mention', (mention) => {
-    // 멘션 알림 처리
-});
+```bash
+bash ./gradlew bootJar -x test
 ```
 
-### 채팅방 타입
-- **PROJECT**: 프로젝트 기본 팀 채팅방
-- **TOPIC**: 주제별 채팅방
-- **PRIVATE**: 1:1 개인 채팅방
-- **PR_REVIEW**: Pull Request 리뷰 채팅방
+이 명령은 JAR만 빌드하며 DB·Redis나 서버를 실행하지 않습니다.
+현재 저장소의 Compose 파일에는 ECR 이미지 주소가 포함되어 있으므로, 새 환경에서는 이미지와 환경 설정을 확인한 뒤 사용해야 합니다.
+기존 EC2 배포 절차는 [MAIN_AUTO_DEPLOY.md](docs/MAIN_AUTO_DEPLOY.md)를 참고합니다.
 
-### 메시지 기능
-- 실시간 메시지 전송/수신
-- 메시지 수정/삭제 (작성자 본인만)
-- 멘션 기능 (@username)
-- 타이핑 상태 실시간 표시
-- 읽음/안읽음 상태 추적
-- 이미지/파일 첨부 지원 예정
+## API 문서 및 상태 확인
 
-## 👨‍💻 개발 규칙
+| 용도 | 로컬 실행 시 주소 | 테스트 배포 주소 |
+| --- | --- | --- |
+| API 서버 | http://localhost:8080 | https://meeteam.fignal.me |
+| Swagger UI | http://localhost:8080/swagger-ui.html | https://meeteam.fignal.me/swagger-ui.html |
+| 상태 확인 | http://localhost:8080/actuator/health | https://meeteam.fignal.me/actuator/health |
 
-### Code Documentation
-- **Javadoc 적극 활용**: 모든 public 클래스, 메서드, 필드에 대해 Javadoc 작성 필수
-  ```java
-  /**
-   * 사용자 정보를 조회합니다.
-   * 
-   * @param userId 조회할 사용자 ID
-   * @return 사용자 정보 DTO
-   * @throws UserNotFoundException 사용자를 찾을 수 없을 때
-   */
-  public UserDto getUser(Long userId) {
-      // implementation
-  }
-  ```
-- **클래스 레벨 문서화**: 각 클래스의 역할과 책임을 명확히 기술
-- **API 문서화**: Controller 메서드에는 @Operation 어노테이션과 함께 상세한 설명 작성
-- **복잡한 비즈니스 로직**: 인라인 주석으로 로직 설명 추가
+로컬 주소는 해당 컴퓨터에서 앱을 실행했을 때 사용하는 주소입니다.
+배포 주소는 EC2와 앱이 실행 중이고 네트워크 접근이 허용되어 있어야 사용할 수 있습니다.
+Swagger 경로는 코드 설정 기준이며, 표의 주소가 항상 접속 가능하다는 의미는 아닙니다.
 
-### Naming Conventions
-- **클래스명**: PascalCase (예: UserService, ProjectController)
-- **메서드명**: camelCase (예: getUserInfo, createProject)
-- **상수**: UPPER_SNAKE_CASE (예: MAX_FILE_SIZE, DEFAULT_PAGE_SIZE)
-- **패키지명**: 소문자, 점으로 구분 (예: com.wardk.meeteam_backend.domain.member)
+## 실시간 알림
 
-### Code Structure
-- **Domain-Driven Design** 원칙 적용
-- **계층형 아키텍처**: Controller → Service → Repository
-- **단일 책임 원칙** 준수
-- **의존성 주입**을 통한 느슨한 결합
+인증된 사용자는 `GET /api/v1/subscribe`로 SSE 알림 스트림을 구독합니다.
+알림 목록과 미확인 개수는 `GET /api/v1/notifications` 및 `GET /api/v1/notifications/unread/count`로 조회합니다.
+프론트엔드는 EventSource로 구독하고 Next.js API 프록시를 통해 백엔드에 연결합니다.
 
-### Error Handling
-- **CustomException** 및 **ErrorCode** enum 활용
-- **GlobalExceptionHandler**를 통한 중앙 집중식 예외 처리
-- 사용자 친화적인 에러 메시지 제공
+## 파일 저장
 
-### Testing
-- **단위 테스트** 작성 권장
-- **통합 테스트**로 API 동작 검증
-- **테스트 커버리지** 80% 이상 유지 목표
+S3 업로드·삭제 서비스 코드가 포함되어 있습니다.
+실제 사용에는 유효한 버킷·접근 권한·환경변수가 필요하며, 현재 테스트 환경의 S3 연결 성공과 이미지 저장·조회·삭제 검증은 별도로 확인해야 합니다.
 
+## 코드 구성 및 테스트
 
+- `domain`: 엔티티·저장소·서비스
+- `web`: 컨트롤러·요청/응답 DTO
+- `global`: 인증·설정·예외 처리·공통 응답 등
+- `CustomException`, `ErrorCode`, `GlobalExceptionHandler`를 이용한 공통 예외 처리가 구현되어 있습니다.
+- 단위·통합·인수 테스트 코드가 포함되어 있습니다. 빌드 성공이 전체 테스트 통과나 특정 커버리지 달성을 의미하지는 않습니다.
 
 ## main 테스트 서버 자동 배포
 
-`main` push → 최소 CI(테스트/린트 없음) → JAR 빌드 → 기존 EC2 앱 교체 → 상태 확인. 실패하면 이전 앱으로 복구합니다. DB·HTTPS·테스트 계정 비밀번호는 서버에 유지합니다.
+`main` push → 최소 CI(테스트/린트 없음) → JAR 빌드 → 기존 EC2 앱 교체 → 상태 및 테스트 계정 인증 확인.
+실패 시 이전 앱으로 복구하며 DB·Redis·Nginx·HTTPS·비밀 설정을 유지합니다.
+테스트 계정 인증 확인은 서버에서 해당 기능이 활성화된 경우 수행합니다.
 
-최초 runner 등록과 실행 방법은 [MAIN_AUTO_DEPLOY.md](docs/MAIN_AUTO_DEPLOY.md)를 참고하세요. runner를 등록하기 전에는 자동 배포가 활성화되지 않습니다.
+테스트 배포는 EC2, Elastic IP, DNS 도메인 연결, Nginx 리버스 프록시 및 Certbot 기반 HTTPS 구성을 사용합니다.
+자체 호스팅 runner가 설치되어 있고 EC2가 실행 중이어야 자동 배포가 진행됩니다.
+최초 설정과 운영 절차는 [MAIN_AUTO_DEPLOY.md](docs/MAIN_AUTO_DEPLOY.md)를 참고합니다.
