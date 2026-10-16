@@ -58,28 +58,7 @@ src/main/java/com/wardk/meeteam_backend/
 │   ├── recruitment/                       # 모집 관리
 │   └── skill/                             # 기술 스택 관리
 ├── global/                                # 인증·설정·공통 기능
-│   ├── MultipartJackson2HttpMessageConverter.java
-│   ├── aop/                               # 공통 관점 처리
-│   ├── auth/                              # 인증·인가
-│   ├── config/                            # 애플리케이션 설정
-│   ├── constant/                          # 공통 상수
-│   ├── entity/                            # 공통 엔티티
-│   ├── exception/                         # 예외 및 예외 처리
-│   ├── logging/                           # 로깅
-│   ├── response/                          # 공통 응답
-│   └── util/                              # 공통 유틸리티
 └── web/                                   # API 컨트롤러·요청/응답 DTO
-    ├── application/                       # 프로젝트 지원 API
-    ├── auth/                              # 인증 API
-    ├── job/                               # 직무 API
-    ├── mainpage/                          # 메인 페이지 API
-    ├── member/                            # 회원 API
-    ├── notification/                      # 알림 API 및 전달 형식
-    ├── project/                           # 프로젝트 API
-    ├── projectlike/                       # 좋아요 API
-    ├── projectmember/                     # 팀원 관리 API
-    ├── qna/                               # 질문·답변 API
-    └── recruitmentState/                  # 모집 상태 요청/응답 DTO
 ```
 
 ## 🚀 시작하기
