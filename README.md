@@ -44,23 +44,42 @@ MeeTeam은 개발자들이 팀을 구성하고 프로젝트를 협업할 수 있
 
 ```
 src/main/java/com/wardk/meeteam_backend/
-├── MeeteamBackendApplication.java          # 메인 애플리케이션 클래스
-├── domain/                                 # 도메인 로직
-│   ├── applicant/                          # 지원자 관리
-│   ├── category/                           # 카테고리 관리
-│   ├── chat/                              # 채팅 기능
-│   ├── codereview/                        # 코드 리뷰
+├── MeeteamBackendApplication.java          # 애플리케이션 진입점
+├── domain/                                # 도메인 모델·저장소·서비스
+│   ├── application/                       # 프로젝트 지원 및 승인·거절
 │   ├── file/                              # 파일 관리
+│   ├── job/                               # 직무 및 포지션
 │   ├── member/                            # 회원 관리
-│   ├── notification/                      # 알림 시스템
-│   ├── pr/                                # Pull Request 관리
+│   ├── notification/                      # 알림 및 SSE
 │   ├── project/                           # 프로젝트 관리
-│   ├── projectLike/                       # 프로젝트 좋아요
-│   ├── projectMember/                     # 프로젝트 멤버 관리
-│   ├── review/                            # 리뷰 시스템
+│   ├── projectlike/                       # 프로젝트 좋아요
+│   ├── projectmember/                     # 프로젝트 팀원 관리
+│   ├── qna/                               # 프로젝트 질문·답변
+│   ├── recruitment/                       # 모집 관리
 │   └── skill/                             # 기술 스택 관리
-├── global/                                # 전역 설정 및 공통 기능
-└── web/                                   # 웹 계층 (컨트롤러)
+├── global/                                # 인증·설정·공통 기능
+│   ├── MultipartJackson2HttpMessageConverter.java
+│   ├── aop/                               # 공통 관점 처리
+│   ├── auth/                              # 인증·인가
+│   ├── config/                            # 애플리케이션 설정
+│   ├── constant/                          # 공통 상수
+│   ├── entity/                            # 공통 엔티티
+│   ├── exception/                         # 예외 및 예외 처리
+│   ├── logging/                           # 로깅
+│   ├── response/                          # 공통 응답
+│   └── util/                              # 공통 유틸리티
+└── web/                                   # API 컨트롤러·요청/응답 DTO
+    ├── application/                       # 프로젝트 지원 API
+    ├── auth/                              # 인증 API
+    ├── job/                               # 직무 API
+    ├── mainpage/                          # 메인 페이지 API
+    ├── member/                            # 회원 API
+    ├── notification/                      # 알림 API 및 전달 형식
+    ├── project/                           # 프로젝트 API
+    ├── projectlike/                       # 좋아요 API
+    ├── projectmember/                     # 팀원 관리 API
+    ├── qna/                               # 질문·답변 API
+    └── recruitmentState/                  # 모집 상태 요청/응답 DTO
 ```
 
 ## 🚀 시작하기
