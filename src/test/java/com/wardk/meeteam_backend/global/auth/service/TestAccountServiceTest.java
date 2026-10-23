@@ -19,6 +19,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * 테스트 계정 생성·보존, 로그인 검증 및 실행 환경별 활성화 조건을 확인합니다.
+ */
 class TestAccountServiceTest {
     private final String password = "unit-test-only-not-a-real-secret";
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(4);
