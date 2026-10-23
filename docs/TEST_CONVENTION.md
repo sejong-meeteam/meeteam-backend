@@ -3,7 +3,8 @@
 ## 1. 문서 목적과 기준
 
 테스트 작성 기준, 실제 코드 위치, 보고서에 대응하는 검증 대상을 정리합니다.
-이 문서의 기존 구현 현황은 GitHub `main`의 `28972a7` 기준입니다.
+이 문서의 기존 구현 현황은 GitHub `main`의 `3865b451663788792d7e78c736282f8b9ff105f1` 기준입니다.
+이전 문서 기준 `28972a7`과 이 커밋의 `src/`·`build.gradle` 트리는 동일합니다. 이 문서는 게시된 코드만 정적으로 검토했으며 테스트를 실행하지 않았습니다.
 로컬에서 수정 중인 인증 시나리오·실행 설정은 아직 검증·커밋이 완료되지 않았으므로 완료 근거에 포함하지 않습니다.
 **테스트 코드의 존재, 코드 검토, 신규 작성, 실행, 통과는 구분하여 기록합니다.**
 
@@ -81,9 +82,9 @@ Mockito로 의존성을 대체하며, 빈 등록 조건은 `ApplicationContextRu
 
 - 프로젝트명·리더명 검색, 카테고리·플랫폼·모집 상태 필터를 확인합니다.
 - 최신순·마감일순 정렬, 요청 크기와 `hasNext()`, DTO 필드 변환을 확인합니다.
-- 실제 카테고리는 `CAPSTONE`, `CREATIVE_SEMESTER`, `CLUB`입니다. 예전 `AI_TECH`·`HEALTHCARE`를 현재 값으로 사용하지 않습니다.
+- 실제 카테고리는 `CAPSTONE`, `CREATIVE_SEMESTER`, `CLUB`, `ETC`입니다. 예전 `AI_TECH`·`HEALTHCARE`를 현재 값으로 사용하지 않습니다.
 - 시드 데이터의 ID·날짜·FK 관계·기대 개수를 함께 관리합니다. SQL 주석보다 실제 데이터와 테스트의 기대값을 대조합니다.
-- 엔티티 생성에는 `MemberFixture`, `ProjectFixture`를 사용하고, 저장이 필요하면 Repository를 명시적으로 사용합니다.
+- 엔티티 생성에는 `MemberFixture`, `ProjectFixture`를 사용하고, 저장이 필요하면 Repository를 명시적으로 사용합니다. `MemberFixture`의 실제 메서드는 `defaultMember()`, `withName(String)`, `withEmail(String, String)`입니다. `ProjectFixture`는 `defaultProject(Member)`, `withName(String, Member)`, `withEndDate(LocalDate, Member, String)`, `withCategory(ProjectCategory, Member, String)`, `withPlatform(PlatformCategory, Member, String)`, `withRecruitment(Recruitment, Member, String)`을 제공합니다. `create()`·`createAndSave()` 픽스처 메서드는 없습니다.
 - 반복 요청 생성·검색 호출은 기존 테스트의 `requestWithCategory()`, `defaultPageable()`, `search()` 같은 헬퍼로 구분합니다.
 - HTTP 요청은 별도 서버 트랜잭션에서 처리되므로 테스트 메서드의 롤백만으로 모든 HTTP 시나리오가 격리된다고 가정하지 않습니다.
 
@@ -119,7 +120,7 @@ project-application.feature의 지원 요청 문장
 - 서비스는 세종대 포털 로그인·가입을 사용하지만, 기존 `AuthAPI`와 `auth.feature`에는 제거된 이메일·OAuth 인증 흐름이 남아 있습니다.
 - 현재 인증 경로는 `/api/v1/auth/login/sejong`, `/api/v1/auth/register/sejong`이며, JWT는 HttpOnly 쿠키로 전달됩니다. 기존 테스트의 응답 본문·헤더 가정도 함께 대조해야 합니다.
 - 기본 Gradle `test`와 `integrationTest`는 Cucumber 엔진을 제외합니다. 전용 실행 태스크와 엔진·suite 선택을 정리한 뒤 실제 실행해야 합니다.
-- Cucumber 7.31.0과 기존 JUnit Platform 1.11 계열 사이에서 엔진 발견 오류가 확인됐습니다. 의존성 정합성을 맞춘 후 재검증해야 합니다.
+- `build.gradle:104-107`은 Cucumber 7.31.0과 JUnit Platform suite 1.11.4를 선언합니다. 정적 검토만으로 엔진 발견 성공·실패를 확정하지 않으며, 의존성 정합성과 suite 선택을 별도 실행으로 검증해야 합니다.
 - 기준 `application-test.yml`은 H2 메모리 DB와 Redis `localhost:6379`를 지정합니다. 이 설정만으로 전용 Redis나 외부 서비스 격리가 보장되지 않습니다.
 - `external/`의 포털 테스트와 애플리케이션 워밍업은 외부 호출 가능성이 있으므로, 오프라인 테스트에서 무조건 실행하지 않습니다.
 - 테스트 실행 전에는 전용 DB·Redis, 포털·S3 대역, 워밍업 비활성화 등 격리 조건을 확인합니다. 운영 데이터에 초기화·삭제 명령을 실행하지 않습니다.
@@ -153,3 +154,19 @@ project-application.feature의 지원 요청 문장
 
 실제로 테스트를 실행했으면 **명령, 환경, 대상, 실행·통과·실패·건너뜀 수, 미검증 항목**을 기록합니다.
 
+## 10. 게시 소스 근거와 남은 공백
+
+아래 줄 번호는 위 기준 커밋의 `git show <commit>:<path>` 기준이며 로컬 수정본의 줄 번호가 아닙니다. Java 경로는 `src/`부터 표기합니다.
+
+| 근거 | 확인 내용 및 한계 |
+| --- | --- |
+| `src/test/java/com/wardk/meeteam_backend/fixture/MemberFixture.java:10-19`, `src/test/java/com/wardk/meeteam_backend/fixture/ProjectFixture.java:17-104` | 실제 생성 메서드와 인자 순서, Repository 저장은 별도 |
+| `src/main/java/com/wardk/meeteam_backend/domain/project/entity/ProjectCategory.java:8-12` | 카테고리 4개, `ETC` 포함 |
+| `src/test/java/com/wardk/meeteam_backend/global/auth/service/TestAccountServiceTest.java:75-81` | 잘못된 비밀번호 거부·JWT 미호출을 확인하는 기존 단위 테스트 발췌. 신규 작성·통과 아님 |
+| `src/test/java/com/wardk/meeteam_backend/integration/project/service/ProjectQueryServiceIntegrationTest.java:29-32,375-432` | 기존 통합 테스트, SQL 설정 및 Slice 검색 헬퍼. 실행 결과 아님 |
+| `src/test/java/com/wardk/meeteam_backend/acceptance/cucumber/steps/ProjectCreateSteps.java:161-179` | 리더 DB 검증은 존재하지만 실패 검증은 HTTP 400 이상을 허용하므로 500도 통과 가능. 보완 필요 |
+| `src/main/java/com/wardk/meeteam_backend/web/auth/controller/AuthController.java:45-85` | 세종대 인증 경로와 쿠키 발급 |
+| `src/test/java/com/wardk/meeteam_backend/acceptance/cucumber/api/AuthAPI.java:29-65,70-83` | 레거시 회원가입·OAuth 요청 헬퍼 잔존 |
+| `build.gradle:103-115,124-138`, `src/test/java/com/wardk/meeteam_backend/acceptance/cucumber/CucumberTest.java:18-23` | Cucumber·suite·격리 도구 의존성 선언과 엔진 제외 설정. 도구 구현·정상 실행의 근거는 아님 |
+
+추가 과제는 인증 계약 일치, 전체 feature 문장의 Step 연결, 정확한 4xx·오류 코드 검증, 외부 서비스 격리, 생성 실패 롤백·상세 `isLeader`의 독립 검증입니다. 이번 수정은 문서 감사이며 신규 단위·통합 테스트 작성, 코드 리팩토링, 테스트 통과, 커밋·푸시를 수행하거나 주장하지 않습니다.
