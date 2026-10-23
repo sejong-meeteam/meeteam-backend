@@ -3,6 +3,10 @@
 이 문서는 MeeTeam Backend 프로젝트의 코드 작성 규칙을 정의합니다.
 모든 팀원은 새로운 기능 개발 시 이 컨벤션을 준수해야 합니다.
 
+## 문서 기준과 예시 범위
+
+게시 GitHub `main` 커밋 `3865b451663788792d7e78c736282f8b9ff105f1`의 코드를 `git show`로 정적 검토했습니다. 일반 규칙·예시는 향후 작성 지침이며 모든 기존 코드가 준수하거나 이번에 리팩토링되었다는 뜻이 아닙니다. `{도메인}`·`Entity` 등 가상 타입과 생략 코드는 실제 구현이 아닙니다. 로컬 미커밋 acceptance/config 변경과 실행 결과는 게시 구현 근거에서 제외합니다. 테스트 현황은 [TEST_CONVENTION.md](TEST_CONVENTION.md)가 단일 기준입니다.
+
 ---
 
 ## 목차
@@ -165,7 +169,7 @@ public {Response} method(Long id, Long memberId, {Request} request) {
 |-----------|----------|
 | `@Transactional` | 클래스 레벨 (기본값) |
 | `@Transactional(readOnly = true)` | 조회 전용 메서드 |
-| `@Transactional(propagation = Propagation.NEVER)` | 트랜잭션 분리 필요 시 |
+| `@Transactional(propagation = Propagation.NEVER)` | 기존 트랜잭션이 있으면 예외, 없으면 비트랜잭션 실행. 새 트랜잭션 생성/분리와 다름 |
 
 ### 4.4 검증 메서드 분리
 
@@ -251,12 +255,12 @@ public class EntityName extends BaseEntity {
 객체의 상태를 getter로 꺼내서 외부에서 검증하지 말고, 객체에게 직접 물어보거나 행동을 요청합니다.
 
 ```java
-// ❌ Bad - getter로 꺼내서 외부에서 검증
+// Bad - getter로 꺼내서 외부에서 검증
 if (!project.getCreator().getEmail().equals(requesterEmail)) {
     throw new CustomException(ErrorCode.PROJECT_MEMBER_FORBIDDEN);
 }
 
-// ✅ Good - 엔티티에게 검증 요청
+// Good - 엔티티에게 검증 요청
 project.validateLeaderPermission(requesterEmail);
 ```
 
@@ -438,19 +442,21 @@ if (isDuplicate) {
 ### 8.1 성공 응답
 
 ```java
-// 기본 성공 (code: "OK", message: "요청이 성공했습니다")
+// 기본 성공 (code: "COMMON200", message: "요청에 성공했습니다.")
 return SuccessResponse.onSuccess(response);
 
 // 커스텀 성공 코드
-return SuccessResponse.of(SuccessCode.CREATED, response);
+return SuccessResponse.of(SuccessCode._PROJECT_APPLICATION_CREATED, response);
 ```
+
+`SuccessResponse.of()`는 응답 본문을 만들 뿐 HTTP 상태를 변경하지 않습니다. 위 enum의 HttpStatus만 보고 HTTP 201이라고 가정하지 말고 Controller의 `ResponseEntity`·`@ResponseStatus` 여부를 확인합니다. `result`가 null이면 JSON에서 생략됩니다. 근거: `global/response/SuccessResponse.java:10-25`, `SuccessCode.java:10-23` (main 패키지 기준).
 
 ### 8.2 응답 JSON 형식
 
 ```json
 {
-  "code": "OK",
-  "message": "요청이 성공했습니다",
+  "code": "COMMON200",
+  "message": "요청에 성공했습니다.",
   "result": {
     "applicationId": 1,
     "projectId": 10,
@@ -483,13 +489,14 @@ eventPublisher.publishEvent(new NotificationEvent(
 
 - 알림 저장과 SSE 이벤트 발행은 **분리**
 - 이벤트는 `@TransactionalEventListener`로 **비동기** 처리
-- 트랜잭션 커밋 후 이벤트 발행 (`AFTER_COMMIT`)
+- 서비스에서 이벤트를 발행하고, 리스너가 트랜잭션 커밋 후 처리 (`AFTER_COMMIT`). 발행 시점 자체가 커밋 후라는 뜻은 아님
+- 게시 근거: `src/main/java/com/wardk/meeteam_backend/domain/notification/NotificationListener.java:28-40`. 알림 저장/조회 테스트는 실제 SSE 수신 검증과 구분
 
 ---
 
 ## 10. 전체 예시 코드
 
-> 아래는 **프로젝트 지원** 기능의 전체 구현 예시입니다.
+> 아래는 **프로젝트 지원** 기능의 작성 흐름을 설명하는 문서용 예시입니다. 게시 소스의 정확한 전체 복사본이나 새 구현 완료의 증거가 아닙니다. 메서드·패키지·API 계약은 사용 전 기준 커밋의 실제 클래스를 대조합니다.
 
 ### 10.1 Controller
 
@@ -812,4 +819,11 @@ public class ProjectApplication extends BaseEntity {
 
 ---
 
-*Last Updated: 2026-03-17*
+## 테스트 데이터와 검증 책임
+
+- 실제 fixture API는 `MemberFixture.defaultMember()`, `withName(String)`, `withEmail(String, String)`과 `ProjectFixture.defaultProject(Member)`, `withName(String, Member)`, `withEndDate(LocalDate, Member, String)`, `withCategory(ProjectCategory, Member, String)`, `withPlatform(PlatformCategory, Member, String)`, `withRecruitment(Recruitment, Member, String)`입니다. `create()`나 `createAndSave()`라는 fixture 메서드를 가정하지 않습니다. 저장은 Repository에서 별도로 합니다.
+- 근거: `src/test/java/com/wardk/meeteam_backend/fixture/MemberFixture.java:10-19`, `ProjectFixture.java:17-104`. 엔티티 정적 팩토리와 fixture API를 혼동하지 않습니다.
+- 실제 카테고리는 `CAPSTONE`, `CREATIVE_SEMESTER`, `CLUB`, `ETC`이며 `AI_TECH`·`HEALTHCARE`는 아닙니다. 근거: `src/main/java/com/wardk/meeteam_backend/domain/project/entity/ProjectCategory.java:8-12`.
+- 프로젝트 검색은 `Slice<ProjectCardResponse>` 계약이며 `Page`·전체 결과 수를 가정하지 않습니다. 기존 검색 통합 테스트의 `requestWithCategory()`, `defaultPageable()`, `search()`는 클래스 내부 헬퍼입니다. 근거: `src/test/java/com/wardk/meeteam_backend/integration/project/service/ProjectQueryServiceIntegrationTest.java:396-433`.
+- 인증 계약은 세종대 `/api/v1/auth/login/sejong`, `/api/v1/auth/register/sejong`과 HttpOnly 쿠키 발급입니다. 기존 인수 테스트의 이메일·OAuth 및 응답 본문 JWT 가정은 현재 API 계약으로 복사하지 않습니다. 근거: `src/main/java/com/wardk/meeteam_backend/web/auth/controller/AuthController.java:45-85`.
+- 기존 인증 단위·검색 통합 테스트를 읽은 활동은 코드 점검입니다. 새 테스트 작성·실행·통과·리팩토링 완료는 실제 변경과 실행 기록이 있을 때만 보고합니다. 이번 감사에서는 문서만 수정했고 코드 구현·테스트 실행·커밋·푸시를 수행하지 않았습니다.
