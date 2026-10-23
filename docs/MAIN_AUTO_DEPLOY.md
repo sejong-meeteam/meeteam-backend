@@ -1,6 +1,8 @@
 # main 자동 배포: GitHub Actions 하나로 구성
 
-대상은 현재 서울 리전의 기존 `meeteam-test` EC2 테스트 서버입니다. CodePipeline, ECR, S3, AWS 액세스 키, SSH 키 공유가 필요 없습니다.
+대상은 서울 리전의 기존 `meeteam-test` EC2 테스트 서버입니다. 이 main 배포 경로는 JAR artifact를 전달해 EC2에서 이미지를 빌드하므로 CodePipeline·ECR 이미지 push·배포용 S3 및 AWS 액세스 키·SSH 키 공유가 필요 없습니다. 애플리케이션의 S3 파일 기능이나 기존 Compose 이미지 설정과는 별개입니다.
+
+구현 근거는 `.github/workflows/deploy-main.yml`, `scripts/deploy-main.sh`, `scripts/setup-test-runner.sh`입니다. 아래 내용은 배포 절차이며, 현재 서버의 가동 상태나 매 실행의 성공을 보장하지 않습니다.
 
 ```text
 main push (또는 main에서 수동 실행)
@@ -16,7 +18,7 @@ CI 단계는 요청대로 코드 검사를 하지 않습니다. **컴파일/배�
 
 ## 처음 한 번만 해야 하는 설정
 
-### 1. 이 변경을 GitHub main에 반영
+### 1. main에 필요한 구성 확인
 
 - `.github/workflows/deploy-main.yml`
 - `scripts/deploy-main.sh`, `scripts/setup-test-runner.sh`
@@ -24,7 +26,7 @@ CI 단계는 요청대로 코드 검사를 하지 않습니다. **컴파일/배�
 - `TestAccountService.java`, `TestAccountController.java` 및 관련 테스트
 - 이 문서와 비밀 파일 제외 `.gitignore` 변경
 
-테스트 로그인 코드를 빼고 main 코드만 배포하면 검증에 실패해 이전 앱으로 복구됩니다.
+배포 스크립트는 기존 `.env.test-account` 파일과 `TEST_ACCOUNT_ENABLED=true`를 필수로 요구합니다. 파일이나 활성화 설정이 없으면 앱 교체 전에 중단합니다. 앱 교체 후 테스트 로그인 또는 인증 프로필 검사가 실패하면 이전 앱 복구를 시도합니다.
 
 **올리면 안 되는 것:** 서버의 `.env`, `.env.test-account`, DB SQL 백업, runner `.credentials`/`.credentials_rsaparams`, 인증 쿠키. 이번 artifact는 JAR/Dockerfile/보안 설정/배포 스크립트만 포함합니다.
 
@@ -38,7 +40,7 @@ CI 단계는 요청대로 코드 검사를 하지 않습니다. **컴파일/배�
 
 ### 3. Ubuntu EC2 터미널에서 설치
 
-이 스크립트가 main에 올라간 뒤 다음을 실행합니다.
+runner가 아직 등록되지 않은 Ubuntu/Linux x64 서버에서 다음을 실행합니다. 이미 등록된 runner는 덮어쓰지 않도록 스크립트가 중단합니다.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sejong-meeteam/meeteam-backend/main/scripts/setup-test-runner.sh -o /tmp/setup-meeteam-runner.sh
@@ -87,9 +89,9 @@ GitHub Runners 화면에 이 runner가 **Idle/Online**이면 준비된 것입니
 ## 서버 중지/실패 시
 
 - EC2가 꺼져 있으면 deploy가 runner를 기다립니다. 서버가 켜져 있어야 배포됩니다.
-- 중지→시작 시 runner 서비스와 기존 앱은 자동 재시작됩니다.
+- EC2 중지→시작 후 runner 서비스와 앱 상태를 확인하세요. 설치 스크립트는 runner를 systemd 서비스로 등록하고 Compose는 `restart: unless-stopped`를 사용하므로, 수동으로 정지한 컨테이너까지 무조건 자동 재시작된다고 가정하지 않습니다.
 - 대기가 너무 길어 워크플로가 만료되면 서버 시작 후 Actions에서 다시 실행하세요.
-- health 또는 테스트 로그인 검사 실패 시 이전 앱 이미지를 다시 실행하고 건강 상태를 확인합니다. 실패는 Actions에 빨간색으로 표시합니다.
+- 앱 교체 후 health·테스트 로그인·인증 프로필 검사에 실패하면 이전 앱 이미지를 다시 실행하고 건강 상태를 확인합니다. 복구까지 실패하면 관리자 조치가 필요하며, 이전 앱이 반드시 복구된다고 보장하지 않습니다. 배포 실패는 Actions에서도 실패로 표시합니다.
 - 배포 실행 중 수동 취소·강제 종료는 피하세요. 정상 main push는 진행 중 배포를 취소하지 않습니다.
 - 이전 이미지와 DB 백업은 복구용으로 유지하므로 `df -h`, `docker system df`로 디스크 사용량을 주기적으로 확인하세요. 무분별한 `docker system prune -a`, `down -v`는 하지 마세요.
 
