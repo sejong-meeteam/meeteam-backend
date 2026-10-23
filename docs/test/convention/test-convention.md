@@ -1,6 +1,15 @@
 # Cucumber ATDD 테스트 컨벤션
 
-이 문서는 Cucumber 기반 ATDD(Acceptance Test-Driven Development) 테스트 구조의 컨벤션을 정의합니다.
+이 문서는 Cucumber 기반 ATDD(Acceptance Test-Driven Development) 테스트 구조의 상세 작성 지침입니다.
+
+## 기준과 예시의 범위
+
+- 구현 현황의 단일 기준은 [테스트 컨벤션](../../TEST_CONVENTION.md)이며, 게시 GitHub `main` 커밋 `3865b451663788792d7e78c736282f8b9ff105f1`을 `git show`로 정적 검토했습니다. 실행·통과 기록이 아닙니다.
+- 아래 `Entity*`, `com.example`, `entity()` 등은 확장용 가상 예시이며 실제 클래스·API·enum이 아닙니다. 신규 작성이나 리팩토링 완료 근거로 사용하지 않습니다.
+- 실제 패키지는 `src/test/java/com/wardk/meeteam_backend/acceptance/cucumber/`입니다. `TestContext`는 `support/`, Hooks는 패키지 루트의 `CucumberSpringConfiguration.java`, 실행기는 `CucumberTest.java`에 있습니다.
+- 직접 Step 클래스는 `AuthSteps`, `ProjectCreateSteps`, `ProjectApplicationSteps`입니다. 8개 feature 파일의 존재가 모든 Step 구현·통과를 뜻하지 않습니다. `CommonSteps`·`EntityFactory`·도메인별 가상 파일은 추가 설계 예시입니다.
+- 게시 `AuthAPI`는 레거시 이메일·OAuth 흐름을 포함합니다. 실제 인증은 `/api/v1/auth/login/sejong`, `/api/v1/auth/register/sejong` 및 HttpOnly 쿠키 발급입니다. `accessToken` 필드와 Bearer 예시는 기존 헬퍼 구조 설명이며 로그인 응답 본문의 JWT 반환 계약을 뜻하지 않습니다.
+- 로컬 미커밋 acceptance/config 수정은 구현·게시·통과 근거에서 제외합니다.
 
 ---
 
@@ -104,7 +113,7 @@ assertThat(context.getResponse().statusCode()).isEqualTo(200);
 
 ### 규칙
 
-1. **공통 필드**: `accessToken`, `response`는 항상 포함
+1. **공통 필드**: 게시 구조의 `accessToken`, `response`를 설명한 예시입니다. 인증 계약 변경 시 쿠키 기반 상태 모델을 별도 설계·검증합니다.
 2. **도메인 데이터**: 내부 클래스(`XxxData`)로 그룹화
 3. **메서드 네이밍**: 도메인 데이터는 `entity()` 형태의 메서드로 접근
 4. **불변성**: 객체 자체는 final, 내부 필드만 변경
@@ -220,11 +229,11 @@ public class EntityAPI {
     }
 
     public ExtractableResponse<Response> 조회(String token, Long id) {
-        return RestAssured.given().log().all()
+        return RestAssured.given()
             .header("Authorization", "Bearer " + token)
             .when()
             .get("/api/entities/{id}", id)
-            .then().log().all()
+            .then()
             .extract();
     }
 
@@ -255,7 +264,7 @@ public class EntityAPI {
     // === 내부 헬퍼 ===
 
     private ExtractableResponse<Response> 생성_요청(String token, Map<String, Object> params) {
-        var spec = RestAssured.given().log().all()
+        var spec = RestAssured.given()
             .contentType(ContentType.JSON)
             .body(params);
 
@@ -266,7 +275,7 @@ public class EntityAPI {
         return spec
             .when()
             .post("/api/entities")
-            .then().log().all()
+            .then()
             .extract();
     }
 }
@@ -275,7 +284,7 @@ public class EntityAPI {
 ### 규칙
 
 1. **한글 메서드명**: `생성()`, `조회()`, `수정()`, `삭제()` 등
-2. **로깅**: `log().all()`로 요청/응답 로깅
+2. **로깅**: 요청·응답 전체 로깅을 기본값으로 사용하지 않습니다. 비밀번호, JWT, Authorization, Cookie, Set-Cookie 등은 기록하지 않거나 반드시 마스킹합니다. 기존 헬퍼의 전체 로깅은 보완 대상입니다.
 3. **반환 타입**: `ExtractableResponse<Response>`
 4. **기본값 처리**: API 클래스에서 요청 데이터의 기본값 설정
    - Step 클래스는 비즈니스적으로 의미 있는 값만 전달
@@ -385,7 +394,7 @@ public class EntityFactory {
 
 1. **오버로딩**: 필수 파라미터만 받는 메서드 + 상세 파라미터 메서드
 2. **기본값**: 테스트에 불필요한 필드는 기본값 자동 설정
-3. **Builder 패턴**: 가독성을 위해 Builder 사용
+3. **Builder 패턴**: 해당 엔티티가 지원할 때 사용. 기존 `MemberFixture`는 `Member.createForTest()`를 사용합니다.
 4. **즉시 저장**: 생성 후 바로 Repository에 저장하여 반환
 
 ---
@@ -394,7 +403,7 @@ public class EntityFactory {
 
 ### Hooks (CucumberSpringConfiguration)
 
-**기술적 초기화**에 사용
+**기술적 초기화**에 사용합니다. 아래는 축약 예시입니다. 게시 구현 `CucumberSpringConfiguration.java:20-42`는 `@ActiveProfiles("test")`를 사용하고, DB 초기화 후 `data-h2.sql`을 실행합니다. 파괴적 초기화는 전용 테스트 DB에서만 허용합니다.
 
 ```java
 @CucumberContextConfiguration
@@ -452,7 +461,9 @@ Feature: 엔티티 관리
 - 시나리오 간 데이터 격리
 - 모든 테이블 자동 감지 및 TRUNCATE
 
-### 구현 규칙
+### 단순화한 설계 예시 (게시 구현의 정확한 복사본 아님)
+
+게시 `support/DatabaseCleaner.java:24-49,64-69`는 엔티티 테이블 목록과 H2 `PUBLIC`의 실제 테이블 목록을 대조해 존재하는 테이블만 초기화합니다. 아래 간략 예시는 그 검사를 생략하므로 그대로 운영하거나 실행하지 않습니다. `clear()`는 H2 전용 SQL을 사용하며, Redis·외부 서비스 초기화까지 보장하지 않습니다. 실패 시 제약조건 복구를 보장하는 `finally`도 게시 코드에는 없어 보완이 필요합니다.
 
 ```java
 @Component
@@ -561,28 +572,28 @@ public void 오류_메시지가_표시된다() {
 
 ```gherkin
 # language: ko
-Feature: 기능명
+기능: 기능명
   기능에 대한 설명
 
-  Background:
-    Given 공통 전제 조건
+  배경:
+    먼저 공통 전제 조건
 
-  Scenario: 정상 케이스 - 설명
-    Given 전제 조건
-    When 행위
-    Then 기대 결과
+  시나리오: 정상 케이스 - 설명
+    먼저 전제 조건
+    만약 행위
+    그러면 기대 결과
 
-  Scenario: 예외 케이스 - 설명
-    Given 전제 조건
-    When 잘못된 행위
-    Then 오류 응답
+  시나리오: 예외 케이스 - 설명
+    먼저 전제 조건
+    만약 잘못된 행위
+    그러면 오류 응답
 ```
 
 ### 규칙
 
 1. **시나리오 분류**: 정상 케이스, 예외 케이스, 엣지 케이스로 구분
 2. **시나리오 네이밍**: `정상 케이스 - 설명` 또는 `예외 케이스 - 설명` 형식
-3. **파라미터**: `{string}`, `{int}` 등 Cucumber Expression 사용
+3. **파라미터**: Java Step annotation에 `{string}`, `{int}` 등 Cucumber Expression 사용. feature에는 실제 값(`"이름"`, `2`)을 작성
 4. **DataTable**: 복잡한 데이터는 테이블 형식 활용
 
 ### DataTable 사용 예시
@@ -606,7 +617,7 @@ public void 다음과_같은_데이터가_등록되어_있다(DataTable dataTabl
 
 ---
 
-## 11. 디렉토리 구조
+## 11. 확장 설계용 디렉토리 예시 (실제 구조는 상위 컨벤션 참조)
 
 ```
 src/test/
