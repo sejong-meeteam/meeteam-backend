@@ -1,9 +1,23 @@
 # SSE 알림 시스템, 처음부터 이해하기
 
+> 기준: 게시 코드 `3865b451663788792d7e78c736282f8b9ff105f1` 정적 대조. 구현 설명이며 운영 배포·실제 수신·장애 복구 검증 결과가 아닙니다. 테스트/실행 점검은 하지 않았습니다.
+
 > 이 문서는 "코드가 전혀 이해 안 되는 상태"에서 출발해, **비유 → 전체 그림 → 시나리오 → 파일별 역할** 순서로 따라가며 이해하는 것을 목표로 합니다.
 > (기술적 결정/근거가 궁금하면 옆 문서 [`SSE_REDIS_PUBSUB_PLAN.md`](./SSE_REDIS_PUBSUB_PLAN.md)를 보세요. 이 문서는 "어떻게 동작하나"에 집중합니다.)
 
 ---
+
+## 구현된 API 계약
+
+- `GET /api/v1/subscribe`: 인증 사용자 SSE, `text/event-stream`, 선택적 `Last-Event-ID` 헤더. emitter 타임아웃 1시간.
+- `GET /api/v1/notifications`: `SuccessResponse<Slice<NotificationResponse>>`. DTO 생성 후 해당 회원의 **모든** 알림을 읽음 처리한다. 반환 DTO의 읽음 값은 일괄 갱신 전 값이다.
+- `GET /api/v1/notifications/unread/count`: `SuccessResponse` 내부의 `unReadCount`. 이 컨트롤러에 개별 읽음/삭제 API는 없다.
+- 세 경로는 JWT 인증이 필요하다. `Authorization: Bearer <access-token>` 우선, 없으면 `accessToken` 쿠키. 쿼리 토큰은 지원하지 않는다. 기본 브라우저 EventSource는 임의 Authorization 헤더를 설정하지 못하므로 쿠키(교차 출처라면 `withCredentials: true`) 또는 헤더 지원 SSE 클라이언트가 필요하다. 실제 CORS·쿠키 도메인/Secure/SameSite 적합성은 별도 확인 대상이다.
+- 최초 `event: PING`, `data: connected`에는 ID가 없다. 이후 30초 신호는 PING 이벤트가 아닌 SSE 주석 `:heartbeat`이며 1시간 타임아웃을 무기한 연장한다는 뜻은 아니다.
+- live/replay 알림은 `id: {memberId}_{seq}`, `event: {NotificationType}`, `data: {type, data, createdAt}`. `createdAt` Java 타입은 LocalDateTime이다. 이름 있는 이벤트이므로 타입별 리스너가 필요하다.
+- 목록 응답은 SSE 봉투가 아니다: `id, type, isRead, createdAt(LocalDate), applicationId, payload`. payload는 `projectId, projectName, receiverId, receiverName`이다.
+
+근거(위 커밋, `src/main/java/com/wardk/meeteam_backend/` 기준): `web/notification/controller/NotificationController.java:41-68`, `global/auth/filter/JwtFilter.java:112-129`, `global/config/SecurityConfig.java:63-76`, `global/config/PublicEndpoint.java:12-63`, `domain/notification/service/NotificationService.java:21-30`, `domain/notification/repository/NotificationRepository.java:15-31`, `web/notification/dto/response/NotificationResponse.java:20-36`, `web/notification/dto/response/NotificationPayload.java:10-20`, `web/notification/dto/response/NotificationUnreadCountResponse.java:8-10`.
 
 ## 0. 한 문장 요약
 
@@ -108,8 +122,8 @@ NotificationSubscribeService.subscribe()     (설치 기사)
 예: 누군가 내 프로젝트에 지원함 → 나에게 알림.
 
 ```
-[프로젝트 지원 처리 끝, DB 커밋 완료]
-     │ "알림 보내!" 이벤트 발생
+[비즈니스 트랜잭션 안에서 알림 저장 및 이벤트 발행]
+     │ 커밋 성공 후 리스너 실행
      ▼
 NotificationListener   (커밋 후 비동기로 실행)
      │
@@ -263,7 +277,7 @@ public void onMessage(Message message, byte[] pattern)
 
 ### 시나리오 D — 잠깐 끊겼다 다시 붙는다 (재연결/replay)
 
-지하철 터널처럼 네트워크가 잠깐 끊기면 전화선이 죽습니다. 그 사이 온 알림은? → **Redis 보관함에서 다시 꺼내줍니다.**
+재연결 시 Last-Event-ID가 있으면 Redis에 성공적으로 저장되어 남아 있는 이벤트만 replay를 시도합니다. 캐시 데이터/인덱스 TTL은 2시간, 수신자별 시퀀스 TTL은 7일(발급 때 갱신)입니다. 헤더가 없거나 숫자 접미사를 파싱하지 못하면 replay하지 않습니다. DB 알림을 SSE로 재생성하는 복구는 없습니다.
 
 이때 필요한 게 **이벤트 번호(eventId)** 입니다.
 
@@ -285,7 +299,7 @@ NotificationSubscribeService
 
 > 🔢 **왜 번호를 시간 대신 Redis가 발급하나?**
 > 예전엔 번호를 "현재 시각(밀리초)"으로 만들었는데, 같은 순간에 알림 2개가 오면 **번호가 똑같아져서 하나가 사라졌습니다.** 또 서버가 여러 대면 서버끼리 시계가 미세하게 달라 순서가 꼬였습니다.
-> 그래서 **Redis에게 "다음 번호 뭐야?"라고 물어 1, 2, 3...을 받습니다.** Redis 한 곳에서만 번호를 매기니 절대 안 겹치고 순서도 정확합니다.
+> 그래서 **Redis에게 "다음 번호 뭐야?"라고 물어 1, 2, 3...을 받습니다.** 수신자별 INCR로 번호를 할당해 같은 밀리초 충돌을 피합니다. 번호 할당·캐시 쓰기·publish는 원자적으로 묶이지 않으므로 동시 발행의 live 도착 순서나 무누락·무중복을 보장하지는 않습니다.
 
 ---
 
@@ -346,10 +360,10 @@ NotificationSubscribeService
 - 전화선(`SseEmitter`)은 "지금 이 서버에 살아있는 실제 네트워크 연결"이라 다른 서버로 복사·이동이 불가능합니다. 그래서 각 서버 메모리에만 두고, 대신 **방송으로 알림만 옮깁니다.**
 
 **Q. Redis가 죽으면요?**
-- 실시간 방송은 잠깐 멈추지만, 비즈니스 로직(지원/승인 등)과 DB는 멀쩡합니다. 사용자가 새로고침하면 알림 목록 API로 확인 가능하고, Redis가 살아나면 재연결 시 보관함에서 복구됩니다.
+- INCR·캐시 쓰기·publish·replay가 영향을 받습니다. 커밋 후 전송 실패가 이미 커밋된 DB를 되돌리지는 않지만 인증의 Redis 블랙리스트 조회 등 다른 경로도 정상이라는 뜻은 아닙니다. 재연결 복구는 성공적으로 캐시된 미만료 이벤트에 한정되며 캐시 저장 전 실패/Redis 데이터 유실은 복구하지 못합니다. DB 목록 조회도 인증·DB 등이 정상이어야 가능합니다.
 
-**Q. `@class`니 직렬화니 하는 건 뭔가요? (RedisConfig)**
-- 객체(봉투)를 Redis에 넣을 땐 글자(JSON)로 풀어서 저장하고, 꺼낼 땐 다시 객체로 조립해야 합니다. 그런데 "이게 원래 무슨 클래스였는지" 표시(`@class`)를 안 남기면, 꺼낼 때 그냥 `Map`(이름표 없는 상자)으로 나와서 조립이 안 됩니다. **예전 버그의 핵심이 이거였고**, 지금은 `@class` 표시를 남기도록 고쳤습니다. (자세한 건 옆 plan 문서 5.1)
+**Q. 타입 정보와 직렬화는 뭔가요? (RedisConfig)**
+- Redis 전용 ObjectMapper 복사본에 제한된 polymorphic typing(`NON_FINAL`)을 활성화합니다. 타입 정보가 항상 특정 `@class` 필드로 표현된다고 단정하면 안 됩니다. 캐시와 Pub/Sub은 같은 serializer를 사용하며 실제 round-trip은 별도 실행 검증 대상입니다. (`RedisConfig.java:29-58`, `SseEventSubscriber.java:31-55`)
 
 ---
 
@@ -373,3 +387,8 @@ NotificationSubscribeService
 ```
 
 이 그림 하나가 머리에 들어오면, 나머지 코드는 "이 그림의 어느 부분인지"만 찾으면 됩니다.
+## 구현 한계와 미검증 항목
+
+Pub/Sub은 ACK·자동 재시도가 없고 연결 중 누락이 자동 replay되지는 않습니다. replay는 재연결 때만 실행되어 live와 경합 시 중복/역순이 가능합니다. `sendReplay`는 읽힌 객체의 잘못된 타입을 건너뛰지만 Redis 조회·역직렬화 예외 전체를 격리하지는 않습니다. Last-Event-ID는 숫자 접미사만 파싱하며 회원 prefix 일치 검증은 하지 않습니다. 캐시 조회 대상은 인증 회원으로 고정됩니다.
+
+근거: `NotificationSubscribeService.java:60-69,93-119`, `EmitterRepositoryImpl.java:84-94,169-174,212-242,307-331`, `SSENotificationService.java:137-164`, `SseHeartbeatScheduler.java:25-29`, `global/config/AsyncConfig.java:13-14` (위 소스 패키지 기준). 실제 다중 서버 수신, 프록시 버퍼링/idle timeout, 쿠키/CORS, Redis 장애 복구, 클라이언트 중복 제거는 미검증입니다.
