@@ -1,10 +1,12 @@
+> 기준: 공개 코드 커밋 `3865b451663788792d7e78c736282f8b9ff105f1`의 enum·DTO·SQL seed. 테스트 및 운영 DB 적용 여부는 검증하지 않았습니다.
+
 # Job 구조 설계 문서
 
 ## 1. 개요
 
 MeeTeam 플랫폼에서 사용하는 직군(JobField), 직무(JobPosition), 기술 스택(TechStack) 구조를 정의합니다.
 
-회원가입 및 프로젝트 등록 시 동일한 구조를 사용합니다.
+회원가입과 프로젝트 등록은 같은 직군·직무·기술 마스터를 참조하지만 요청 DTO는 다릅니다. 회원가입은 기술 ID/표시 순서 객체, 프로젝트 모집은 기술 ID 배열을 사용합니다.
 
 ---
 
@@ -76,21 +78,22 @@ JobField (프론트) ──── TechStack (React.js, Swift, Flutter 등 모두
 
 ### 3.2 데이터 초기화 전략
 
-- `JobDataInitializer`에서 애플리케이션 시작 시 초기 데이터 생성
-- 이미 존재하는 데이터는 중복 생성하지 않음 (findByCode/findByName 체크)
+- 초기 데이터 정의는 `src/main/resources/db/seed/job-seed.sql`입니다 (직군 6개, 직무 21개, 기술 75개).
+- 기준 커밋에 `JobDataInitializer` 클래스는 없습니다. 앱 시작 시 자동 생성된다고 단정하지 않습니다.
+- SQL은 `ON DUPLICATE KEY UPDATE`를 사용합니다. 실제 적용 여부 및 기존 DB의 키·데이터 상태는 별도 확인이 필요합니다.
 
 ---
 
 ## 4. JobField (직군) 목록
 
-| ID | Code | Name |
-|----|------|------|
-| 1 | PLANNING | 기획 |
-| 2 | DESIGN | 디자인 |
-| 3 | FRONTEND | 프론트 |
-| 4 | BACKEND | 백엔드 |
-| 5 | AI | AI |
-| 6 | INFRA_OPERATION | 인프라/운영 |
+| Code | Name |
+|------|------|
+| PLANNING | 기획 |
+| DESIGN | 디자인 |
+| FRONTEND | 프론트 |
+| BACKEND | 백엔드 |
+| AI | AI |
+| INFRA_OPERATION | 인프라/운영 |
 
 ---
 
@@ -208,7 +211,7 @@ JobField (프론트) ──── TechStack (React.js, Swift, Flutter 등 모두
 
 | 분류 | 기술 스택 |
 |------|----------|
-| 클라우드 | AWS, EC2, RDS, S3, IAM |
+| 클라우드 | AWS |
 | 컨테이너 | Docker, Kubernetes |
 | 웹서버 | Nginx |
 | CI/CD | GitHub Actions |
@@ -223,14 +226,14 @@ JobField (프론트) ──── TechStack (React.js, Swift, Flutter 등 모두
 ### 7.1 회원가입 시
 
 ```
-1. 관심 JobField 선택 (복수 선택 가능)
+1. 관심 JobField와 JobPosition 선택 (jobPositions 목록)
    예: [백엔드, 프론트]
 
-2. 선택한 JobField에 해당하는 TechStack 선택
+2. 선택한 JobField의 TechStack을 {id, displayOrder}로 선택
    예: [Spring Boot, React.js, TypeScript]
 
-3. 주력 JobPosition 선택
-   예: Java/Spring
+3. jobPositions 목록 순서를 구성
+   예: 첫 직무 Java/Spring (프로필 대표 포지션은 첫 번째 직무에서 계산)
 ```
 
 ### 7.2 프로젝트 등록 시 (모집 분야)
@@ -242,7 +245,7 @@ JobField (프론트) ──── TechStack (React.js, Swift, Flutter 등 모두
 2. 해당 JobField의 JobPosition 선택
    예: Java/Spring
 
-3. 필요한 TechStack 선택 (해당 JobField 범위 내)
+3. 필요한 TechStack ID 목록 선택 (해당 JobField 옵션을 기준으로 구성)
    예: [Spring Boot, JPA, MySQL]
 
 4. 모집 인원 입력
@@ -253,40 +256,36 @@ JobField (프론트) ──── TechStack (React.js, Swift, Flutter 등 모두
 
 ## 8. API 응답 구조
 
-`GET /api/jobs/options` 응답:
+`GET /api/v1/jobs/options`는 `SuccessResponse<JobOptionResponse>`를 반환합니다. 아래는 `result` 내부만 발췌한 예시입니다. 숫자 ID는 설명용이며 실제 응답값을 사용해야 합니다.
 
 ```json
 {
   "fields": [
     {
-      "id": 4,
       "code": "BACKEND",
       "name": "백엔드",
       "positions": [
-        { "id": 10, "code": "JAVA_SPRING", "name": "Java/Spring" },
-        { "id": 11, "code": "KOTLIN_SPRING", "name": "Kotlin/Spring" },
-        { "id": 12, "code": "NODE_NESTJS", "name": "Node.js/NestJS" },
-        { "id": 13, "code": "PYTHON_BACKEND", "name": "Python Backend" }
+        { "id": 11, "code": "JAVA_SPRING", "name": "Java/Spring" }
       ],
       "techStacks": [
-        { "id": 20, "name": "Java" },
-        { "id": 21, "name": "Spring Boot" },
-        { "id": 22, "name": "JPA" }
-        // ...
+        { "id": 30, "name": "Java" }
       ]
     }
-    // ... 다른 fields
-  ],
-  "allPositions": [ /* 전체 Position 목록 */ ],
-  "allTechStacks": [ /* 전체 TechStack 목록 */ ]
+  ]
 }
 ```
+
+응답 최상위는 `code`, `message`, `result`입니다. `result`에는 `fields`만 있고 `allPositions`/`allTechStacks`는 없습니다. 직군 객체에는 `id`가 없고 직무·기술 객체에는 `id`가 있습니다. 직무와 기술은 ID 오름차순으로 정렬됩니다.
+
+근거: `web/job/controller/JobController.java:20-22`, `web/job/dto/response/JobOptionResponse.java:9-13`, `JobFieldOptionResponse.java:11-15`, `domain/job/service/JobInfoServiceImpl.java:39-51` (루트: `src/main/java/com/wardk/meeteam_backend/`).
 
 ---
 
 ## 9. 향후 확장 고려
 
-### 추가 예정 기술 스택 (우선순위별)
+아래 항목은 설계 제안이며 기준 커밋의 enum/seed에 반영된 구현이나 확정 일정이 아닙니다.
+
+### 추가 고려 기술 스택 (제안 우선순위)
 
 | 우선순위 | 항목 |
 |---------|------|
@@ -294,7 +293,7 @@ JobField (프론트) ──── TechStack (React.js, Swift, Flutter 등 모두
 | 중간 | FastAPI, Svelte, GraphQL, Prisma |
 | 낮음 | Rust, Blender, W&B |
 
-### 추가 예정 JobPosition
+### 추가 고려 JobPosition
 
 | JobField | 추가 고려 Position |
 |----------|-------------------|
@@ -312,3 +311,11 @@ JobField (프론트) ──── TechStack (React.js, Swift, Flutter 등 모두
 |------|----------|
 | 2026-02-15 | 최초 문서 작성 |
 | 2026-02-15 | Node/NextJS → Node.js/NestJS 명칭 변경 |
+
+
+## 데이터 기준과 사용 시 주의
+
+- 이 목록은 `src/main/resources/db/seed/job-seed.sql`의 직군별 매핑입니다. 기술은 직군끼리 중복될 수 있으며 고유 기술 seed는 75개입니다.
+- 직군·직무 코드는 `domain/job/entity/JobFieldCode.java`, `JobPositionCode.java`와 일치합니다 (Java 루트: `src/main/java/com/wardk/meeteam_backend/`).
+- `GET /api/v1/jobs/options`의 현재 응답에서 직무·기술 ID를 조회합니다. DB ID를 고정값으로 가정하지 않습니다. seed 파일 존재는 운영 DB 적용 또는 시작 시 자동 실행의 증거가 아닙니다.
+- 요청 형식과 회원 검색의 직군 ID 제약은 [프론트엔드 API 값 가이드](../api/FRONTEND_API_VALUES.md)를 참고합니다.
