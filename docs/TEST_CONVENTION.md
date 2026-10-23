@@ -143,7 +143,7 @@ project-application.feature의 지원 요청 문장
 
 ## 9. 보고서와 실행 결과 기록
 
-| 보고서에서 다루는 내용 | 근거 위치 | 구분 |
+| 내용 | 근거 위치 | 구분 |
 | --- | --- | --- |
 | 인증 단위 테스트 점검 | `global/auth/service/`의 두 테스트 클래스 | 기존 코드 점검 |
 | 프로젝트 검색 통합 테스트 점검 | `integration/project/service/ProjectQueryServiceIntegrationTest.java`, 검색 SQL | 기존 코드 점검 |
@@ -152,4 +152,4 @@ project-application.feature의 지원 요청 문장
 | 인증·알림 역할과 개선점 정리 | 8절에 제시한 기존 클래스 | 구조 분석·보완 항목 도출 |
 
 실제로 테스트를 실행했으면 **명령, 환경, 대상, 실행·통과·실패·건너뜀 수, 미검증 항목**을 기록합니다.
-설명 주석 추가나 빈 커밋은 새 테스트 구현·실행·리팩토링 완료의 근거로 사용하지 않습니다.
+
