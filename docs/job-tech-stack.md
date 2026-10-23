@@ -1,3 +1,5 @@
+> 기준: 공개 코드 커밋 `3865b451663788792d7e78c736282f8b9ff105f1`의 enum·DTO·SQL seed. 테스트 및 운영 DB 적용 여부는 검증하지 않았습니다.
+
 # JobField, JobPosition, TechStack 문서
 
 MeeTeam 플랫폼에서 사용되는 직군(JobField), 직무(JobPosition), 기술 스택(TechStack) 정보입니다.
@@ -93,3 +95,10 @@ Python, NumPy, Pandas, Scikit-learn, PyTorch, TensorFlow, CUDA, Hugging Face, Op
 
 ### 기술 스택 (TechStack)
 AWS, Docker, Kubernetes, Nginx, GitHub Actions, Prometheus/Grafana, Postman, Jira, Playwright, Selenium, Cypress
+
+## 데이터 기준과 사용 시 주의
+
+- 이 목록은 `src/main/resources/db/seed/job-seed.sql`의 직군별 매핑입니다. 기술은 직군끼리 중복될 수 있으며 고유 기술 seed는 75개입니다.
+- 직군·직무 코드는 `domain/job/entity/JobFieldCode.java`, `JobPositionCode.java`와 일치합니다 (Java 루트: `src/main/java/com/wardk/meeteam_backend/`).
+- `GET /api/v1/jobs/options`의 현재 응답에서 직무·기술 ID를 조회합니다. DB ID를 고정값으로 가정하지 않습니다. seed 파일 존재는 운영 DB 적용 또는 시작 시 자동 실행의 증거가 아닙니다.
+- 요청 형식과 회원 검색의 직군 ID 제약은 [프론트엔드 API 값 가이드](api/FRONTEND_API_VALUES.md)를 참고합니다.
