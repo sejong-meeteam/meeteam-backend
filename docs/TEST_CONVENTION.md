@@ -1,528 +1,155 @@
 # MeeTeam Backend 테스트 컨벤션
 
----
+## 1. 문서 목적과 기준
 
-## 1. 테스트 전략
+테스트 작성 기준, 실제 코드 위치, 보고서에 대응하는 검증 대상을 정리합니다.
+이 문서의 기존 구현 현황은 GitHub `main`의 `28972a7` 기준입니다.
+로컬에서 수정 중인 인증 시나리오·실행 설정은 아직 검증·커밋이 완료되지 않았으므로 완료 근거에 포함하지 않습니다.
+**테스트 코드의 존재, 코드 검토, 신규 작성, 실행, 통과는 구분하여 기록합니다.**
 
-| 테스트 유형 | 범위 | 목적 |
-|-----------|------|------|
-| 단위 테스트 | Entity | 엔티티 행동, 검증 로직 |
-| 통합 테스트 | Service → Repository | 실제 DB 연동, DTO 검증 |
-| 인수 테스트 | Controller → DB (E2E) | 사용자 시나리오 |
+## 2. 테스트 유형과 실제 대상
 
----
+| 유형 | 목적 | 실제 코드 |
+| --- | --- | --- |
+| 인증 단위 테스트 | 계정 생성·보존, 잘못된 인증 거부, 토큰 발급·쿠키 처리, 활성화 조건 확인 | `global/auth/service/TestAccountServiceTest.java` |
+| 로그인 흐름 단위 테스트 | 테스트 계정 분기와 일반 세종대 로그인 흐름의 분리 확인 | `global/auth/service/TestAccountSejongLoginTest.java` |
+| 프로젝트 검색 통합 테스트 | Service → Repository → DB 연동과 반환 DTO 확인 | `integration/project/service/ProjectQueryServiceIntegrationTest.java` |
+| Cucumber API 인수 테스트 | 사용자 시나리오에 따라 HTTP 요청과 저장 결과 확인 | `acceptance/cucumber/`와 `resources/features/` |
 
-## 2. 패키지 구조
+위 Java 경로의 기준은 `src/test/java/com/wardk/meeteam_backend/`입니다.
+API 인수 테스트는 백엔드의 Controller → DB 흐름을 검증하는 E2E 성격을 가집니다.
+브라우저 화면·프론트엔드까지 포함하는 E2E와는 범위가 다르며, 브라우저 자동화는 현재 확인된 백엔드 테스트 범위에 포함하지 않습니다.
 
-```
+## 3. 실제 디렉터리 구조
+
+```text
 src/test/java/com/wardk/meeteam_backend/
-├── unit/                          # 단위 테스트
-│   └── {도메인}/
-│       └── entity/                # 엔티티 행동 테스트
-│
-├── integration/                   # 통합 테스트
-│   └── {도메인}/
-│       └── service/               # Service + Repository
-│
-├── acceptance/cucumber/           # 인수 테스트 (기존 구조)
-│
-└── fixture/                       # 공통 테스트 픽스처
+├── global/auth/service/          인증 관련 단위 테스트
+├── integration/project/service/  프로젝트 검색 통합 테스트
+├── acceptance/cucumber/
+│   ├── CucumberTest.java         시나리오 실행기
+│   ├── CucumberSpringConfiguration.java  Spring 서버·초기화 설정
+│   ├── steps/                    시나리오 문장과 Java 동작 연결
+│   ├── api/                      RestAssured HTTP 요청 헬퍼
+│   ├── support/                  상태 공유·API/Repository 접근·DB 초기화
+│   └── factory/                  테스트 회원 생성 헬퍼
+├── fixture/                      공통 엔티티 생성 도우미
+└── external/                     외부 포털 관련 테스트
 
 src/test/resources/
-└── sql/                           # 시드 데이터 SQL 파일
-    └── {도메인}-{기능}-data.sql
+├── features/                     한국어 시나리오 파일
+├── sql/project-search-data.sql   검색 통합 테스트 데이터
+├── data-h2.sql                   직군·직무·기술 스택 초기 데이터
+└── application-test.yml          H2·Redis 등 테스트 설정
 ```
 
----
+`unit/{도메인}/entity/`는 현재 존재하는 구조가 아닙니다.
+문서 예시를 실제 클래스나 패키지의 존재 근거로 사용하지 않습니다.
 
-## 3. 단위 테스트 (Entity)
+## 4. 공통 작성 방식
 
-엔티티의 행동(비즈니스 로직, 검증 메서드)을 테스트합니다.
+- **Given / 먼저:** 회원·프로젝트·입력값 등 사전 조건을 준비합니다.
+- **When / 만약:** 검증할 메서드 또는 API를 호출합니다.
+- **Then / 그러면:** 기대 결과를 확인합니다.
+- 정상 상황 외에 필수값 누락, 잘못된 인증, 권한 부족, 중복 요청 등의 조건을 기능에 맞춰 구분합니다.
+- 상태 코드뿐 아니라 오류 코드, 응답 DTO, 쿠키, DB 상태 등 해당 테스트의 관찰 대상을 명시합니다.
+- 실패 응답을 검사할 때 서버 내부 오류인 `500`을 정상적인 입력 거부로 간주하지 않습니다.
+- 테스트 이름은 검증하는 행동과 조건을 나타냅니다. 기존 파일의 camelCase 또는 설명형 snake_case와 일관성을 유지합니다.
+- `@Nested`와 `@DisplayName`은 조건별 그룹화와 결과 설명에 사용하며, 모든 테스트에 이미 적용됐다고 가정하지 않습니다.
 
-### 3.1 기본 구조
+### 단위 테스트의 실제 예시
+
+`TestAccountServiceTest.wrongPasswordCannotIssueTokens()`는 잘못된 비밀번호를 거부하고 토큰 생성기를 호출하지 않는지 확인합니다.
 
 ```java
-@DisplayName("Project 엔티티 테스트")
-class ProjectTest {
-
-    @Nested
-    @DisplayName("isLeader 메서드는")
-    class IsLeader {
-
-        @Test
-        @DisplayName("생성자의 ID와 일치하면 true를 반환한다")
-        void returns_true_when_creator_id_matches() {
-            // given
-            Member creator = MemberFixture.withId(1L);
-            Project project = ProjectFixture.withCreator(creator);
-
-            // when
-            boolean result = project.isLeader(1L);
-
-            // then
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        @DisplayName("생성자의 ID와 일치하지 않으면 false를 반환한다")
-        void returns_false_when_creator_id_not_matches() {
-            // given
-            Member creator = MemberFixture.withId(1L);
-            Project project = ProjectFixture.withCreator(creator);
-
-            // when
-            boolean result = project.isLeader(999L);
-
-            // then
-            assertThat(result).isFalse();
-        }
-    }
-
-    @Nested
-    @DisplayName("validateLeaderPermission 메서드는")
-    class ValidateLeaderPermission {
-
-        @Test
-        @DisplayName("리더가 아니면 CustomException을 던진다")
-        void throws_exception_when_not_leader() {
-            // given
-            Member creator = MemberFixture.withId(1L);
-            Project project = ProjectFixture.withCreator(creator);
-
-            // when & then
-            assertThatThrownBy(() -> project.validateLeaderPermission(999L))
-                .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PROJECT_MEMBER_FORBIDDEN);
-        }
-    }
+@Test
+void wrongPasswordCannotIssueTokens() {
+    Member member = Member.createForTest(TestAccountService.EMAIL, "Test", encoder.encode(password));
+    when(members.findByEmailAndDeletedAtIsNull(TestAccountService.EMAIL)).thenReturn(Optional.of(member));
+    assertThrows(CustomException.class, () -> service.login(TestAccountService.USERNAME, "wrong"));
+    verifyNoInteractions(jwt);
 }
 ```
 
-### 3.2 테스트 대상
+위 예시는 기존 클래스의 필드와 설정을 사용하는 메서드 발췌입니다.
+Mockito로 의존성을 대체하며, 빈 등록 조건은 `ApplicationContextRunner`로 별도 확인합니다.
 
-| 메서드 패턴 | 설명 | 예시 |
-|-----------|------|------|
-| `is{State}()` | 상태 확인 | `isLeader()`, `isCompleted()`, `isEditable()` |
-| `has{Something}()` | 소유 확인 | `hasMember()`, `hasPermission()` |
-| `can{Action}()` | 행동 가능 여부 | `canEdit()`, `canDelete()` |
-| `validate{Condition}()` | 검증 + 예외 | `validateLeaderPermission()`, `validateNotCompleted()` |
-| `create()` | 팩토리 메서드 | 초기 상태 검증 |
-| `update{Field}()` | 상태 변경 | 변경 후 상태 검증 |
+## 5. 테스트 데이터 컨벤션과 통합 테스트
 
----
+`ProjectQueryServiceIntegrationTest`는 `@SpringBootTest`, `@ActiveProfiles("test")`, `@Transactional`, `@Sql("/sql/project-search-data.sql")`을 사용합니다.
+검색 결과는 `Page`가 아니라 **`Slice<ProjectCardResponse>`**입니다.
 
-## 4. 통합 테스트 (Service)
+- 프로젝트명·리더명 검색, 카테고리·플랫폼·모집 상태 필터를 확인합니다.
+- 최신순·마감일순 정렬, 요청 크기와 `hasNext()`, DTO 필드 변환을 확인합니다.
+- 실제 카테고리는 `CAPSTONE`, `CREATIVE_SEMESTER`, `CLUB`입니다. 예전 `AI_TECH`·`HEALTHCARE`를 현재 값으로 사용하지 않습니다.
+- 시드 데이터의 ID·날짜·FK 관계·기대 개수를 함께 관리합니다. SQL 주석보다 실제 데이터와 테스트의 기대값을 대조합니다.
+- 엔티티 생성에는 `MemberFixture`, `ProjectFixture`를 사용하고, 저장이 필요하면 Repository를 명시적으로 사용합니다.
+- 반복 요청 생성·검색 호출은 기존 테스트의 `requestWithCategory()`, `defaultPageable()`, `search()` 같은 헬퍼로 구분합니다.
+- HTTP 요청은 별도 서버 트랜잭션에서 처리되므로 테스트 메서드의 롤백만으로 모든 HTTP 시나리오가 격리된다고 가정하지 않습니다.
 
-Service 메서드를 실제 DB와 연동하여 테스트하고, **반환되는 DTO를 검증**합니다.
+## 6. 시나리오 파일과 실행 코드의 연결
 
-### 4.1 기본 구조 (시드 데이터 방식)
+| 시나리오 파일 | 내용 | 관련 실행 코드 |
+| --- | --- | --- |
+| `auth.feature` | 인증 | `AuthSteps` → `AuthAPI` |
+| `project-create.feature` | 프로젝트 생성 | `ProjectCreateSteps` → `ProjectCreateApi` |
+| `project-application.feature` | 지원·승인·거절·팀원·알림 | `ProjectApplicationSteps` → 관련 API 헬퍼 |
+| `member.feature`, `project-like.feature`, `project-management.feature`, `project-search.feature`, `qna.feature` | 회원·좋아요·관리·검색·Q&A | 전체 문장 연결 및 현재 API 호환 여부를 추가 확인해야 하는 범위 |
 
-```java
-@SpringBootTest
-@ActiveProfiles("test")
-@Transactional
-@Sql("/sql/project-search-data.sql")
-@DisplayName("ProjectQueryService 통합 테스트")
-class ProjectQueryServiceIntegrationTest {
+`src/test/resources/features/`에는 총 8개 feature 파일이 있습니다.
+하지만 직접적인 Step 클래스는 인증·프로젝트 생성·프로젝트 지원의 3개에 집중돼 있습니다.
+**feature 파일이나 API 헬퍼가 있다는 사실만으로 모든 문장이 구현됐거나 실행에 성공했다고 판단하지 않습니다.**
 
-    // ==================== 상수 (시드 데이터 기반) ====================
+예를 들어 프로젝트 지원 흐름은 다음과 같습니다.
 
-    private static final int DEFAULT_PAGE = 0;
-    private static final int DEFAULT_PAGE_SIZE = 20;
-    private static final int TOTAL_SEED_PROJECTS = 20;
-
-    // 시드 데이터의 카테고리별 개수
-    private static final int AI_TECH_COUNT = 8;
-    private static final int HEALTHCARE_COUNT = 2;
-
-    // 시드 데이터의 모집상태별 개수
-    private static final int RECRUITING_COUNT = 16;
-    private static final int CLOSED_COUNT = 2;
-
-    // 키워드 검색 상수
-    private static final String KEYWORD_AI = "AI";
-    private static final String KEYWORD_NOT_EXIST = "존재하지않는키워드XYZ";
-
-    // ==================== 의존성 ====================
-
-    @Autowired
-    private ProjectQueryService projectQueryService;
-
-    @Autowired
-    private ProjectRepository projectRepository;
-
-    @Autowired
-    private MemberRepository memberRepository;
-
-    // ==================== 테스트 ====================
-
-    @Nested
-    @DisplayName("searchV1 메서드는")
-    class SearchV1 {
-
-        @Nested
-        @DisplayName("키워드 검색 시")
-        class WithKeyword {
-
-            @Test
-            @DisplayName("프로젝트명에 키워드가 포함된 프로젝트를 반환한다")
-            void returns_projects_when_keyword_matches_project_name() {
-                // given - 시드 데이터 사용
-
-                // when
-                Page<ProjectCardResponse> result = search(requestWithKeyword(KEYWORD_AI));
-
-                // then
-                assertThat(result.getContent()).isNotEmpty();
-                assertThat(result.getContent())
-                        .allMatch(dto -> dto.getProjectName().contains(KEYWORD_AI));
-            }
-        }
-
-        @Nested
-        @DisplayName("카테고리 필터 시")
-        class WithCategoryFilter {
-
-            @Test
-            @DisplayName("AI_TECH 카테고리의 프로젝트만 반환한다")
-            void returns_only_ai_tech_projects() {
-                // when
-                Page<ProjectCardResponse> result = search(requestWithCategory(ProjectCategory.AI_TECH));
-
-                // then
-                assertThat(result.getContent()).hasSize(AI_TECH_COUNT);
-                assertThat(result.getContent())
-                        .allMatch(dto -> dto.getCategoryCode().equals(ProjectCategory.AI_TECH.name()));
-            }
-        }
-    }
-
-    // ==================== 헬퍼 메서드 ====================
-
-    private Pageable defaultPageable() {
-        return PageRequest.of(DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
-    }
-
-    private ProjectSearchRequest requestWithKeyword(String keyword) {
-        return new ProjectSearchRequest(keyword, null, null, null, null, null, null);
-    }
-
-    private ProjectSearchRequest requestWithCategory(ProjectCategory category) {
-        return new ProjectSearchRequest(null, category, null, null, null, null, null);
-    }
-
-    private ProjectSearchRequest emptyRequest() {
-        return new ProjectSearchRequest(null, null, null, null, null, null, null);
-    }
-
-    private Page<ProjectCardResponse> search(ProjectSearchRequest request) {
-        return projectQueryService.searchV1(request, defaultPageable(), null);
-    }
-
-    private Page<ProjectCardResponse> search(ProjectSearchRequest request, Pageable pageable) {
-        return projectQueryService.searchV1(request, pageable, null);
-    }
-}
+```text
+project-application.feature의 지원 요청 문장
+→ ProjectApplicationSteps의 @만약 메서드
+→ ProjectApplicationApi의 지원 요청
+→ POST /api/v1/projects/{projectId}/application
+→ 응답·지원 상태·팀원 또는 알림 저장 결과 확인
 ```
 
-### 4.2 시드 데이터 SQL 파일
+알림 조회로 저장 결과를 확인하는 것과 실제 SSE 스트림 수신을 검증하는 것은 별개입니다.
 
-```sql
--- src/test/resources/sql/project-search-data.sql
+## 7. 현재 확인된 불일치와 실행 전 주의사항
 
--- @Nested + @Sql 조합에서 트랜잭션 경계 이슈로 DELETE 필요
-DELETE FROM project;
-DELETE FROM member;
+다음은 게시된 기준 코드에서 발견한 보완 항목이며, 수정·통과 완료 목록이 아닙니다.
 
--- 회원 데이터
-INSERT INTO member (member_id, email, real_name, role, version, created_at) VALUES
-(1, 'hong@example.com', '홍길동', 'USER', 0, '2024-01-01 09:00:00'),
-(2, 'kim@example.com', '김철수', 'USER', 0, '2024-01-01 09:00:00');
+- 서비스는 세종대 포털 로그인·가입을 사용하지만, 기존 `AuthAPI`와 `auth.feature`에는 제거된 이메일·OAuth 인증 흐름이 남아 있습니다.
+- 현재 인증 경로는 `/api/v1/auth/login/sejong`, `/api/v1/auth/register/sejong`이며, JWT는 HttpOnly 쿠키로 전달됩니다. 기존 테스트의 응답 본문·헤더 가정도 함께 대조해야 합니다.
+- 기본 Gradle `test`와 `integrationTest`는 Cucumber 엔진을 제외합니다. 전용 실행 태스크와 엔진·suite 선택을 정리한 뒤 실제 실행해야 합니다.
+- Cucumber 7.31.0과 기존 JUnit Platform 1.11 계열 사이에서 엔진 발견 오류가 확인됐습니다. 의존성 정합성을 맞춘 후 재검증해야 합니다.
+- 기준 `application-test.yml`은 H2 메모리 DB와 Redis `localhost:6379`를 지정합니다. 이 설정만으로 전용 Redis나 외부 서비스 격리가 보장되지 않습니다.
+- `external/`의 포털 테스트와 애플리케이션 워밍업은 외부 호출 가능성이 있으므로, 오프라인 테스트에서 무조건 실행하지 않습니다.
+- 테스트 실행 전에는 전용 DB·Redis, 포털·S3 대역, 워밍업 비활성화 등 격리 조건을 확인합니다. 운영 데이터에 초기화·삭제 명령을 실행하지 않습니다.
+- 실제 계정·비밀번호·키를 테스트 데이터나 문서에 넣지 않습니다. 토큰·쿠키·인증 요청 전체를 로그에 남기지 않습니다.
 
--- 프로젝트 데이터 (다양한 조건)
-INSERT INTO project (project_id, creator_id, project_name, ..., created_at) VALUES
--- AI_TECH 카테고리
-(1, 1, 'AI 챗봇 개발', ..., '2024-01-01 10:00:00'),
-(2, 2, 'AI 이미지 분석', ..., '2024-01-02 10:00:00'),
--- HEALTHCARE 카테고리
-(3, 1, '헬스케어 앱', ..., '2024-01-03 10:00:00');
-```
+로컬에서 진행한 수정과 실행 시도는 아직 검증·커밋 완료 상태가 아닙니다.
+이 문서 수정만으로 위 오류가 해결되거나 전체 시나리오가 통과하는 것은 아닙니다.
 
-### 4.3 테스트 파일 구조
+## 8. 인증·알림 책임 분리와 보완 기준
 
-```java
-class IntegrationTest {
-    // 1. 상수 (시드 데이터 기반)
-    private static final int AI_TECH_COUNT = 8;
+다음은 기존 코드에 존재하는 구조입니다. 이번 주 신규 리팩토링 완료를 의미하지 않습니다.
 
-    // 2. 의존성
-    @Autowired
-    private SomeService service;
+| 구성 요소 | 기존 역할 | 테스트 보완 시 확인할 내용 |
+| --- | --- | --- |
+| `AuthService` / `SejongPortalClient` | 가입·로그인 업무와 외부 포털 통신 분리 | 기존/신규 회원 분기, 인증 실패, 일회용 코드 소비, 외부 장애 조건 |
+| `NotificationPayloadFactory` / `NotificationPayloadStrategy` | 알림 유형에 맞는 응답 데이터 생성 분리 | 유형별 전략 선택, 미지원 유형, 데이터 변환 |
+| `SseEmitterSender` | 전송과 실패 연결 정리를 공통 처리 | 전송 성공·예외, 연결 제거, 다른 연결에 대한 영향 |
 
-    // 3. 테스트 (@Nested 구조)
-    @Nested
-    class SomeMethod {
-        @Test
-        void test_case() { }
-    }
+새 변경을 리팩토링 성과로 기록하려면 수정 파일·변경 이유와 변경 전후의 테스트 결과를 남깁니다.
+기존 분리 구조를 읽고 분석한 활동은 구조 분석으로 기록하며, 직접 수정한 것과 구분합니다.
 
-    // 4. 헬퍼 메서드 (맨 아래)
-    private Request createRequest() { }
-    private Response search() { }
-}
-```
+## 9. 보고서와 실행 결과 기록
 
-### 4.4 @Sql 사용 시 주의사항
+| 보고서에서 다루는 내용 | 근거 위치 | 구분 |
+| --- | --- | --- |
+| 인증 단위 테스트 점검 | `global/auth/service/`의 두 테스트 클래스 | 기존 코드 점검 |
+| 프로젝트 검색 통합 테스트 점검 | `integration/project/service/ProjectQueryServiceIntegrationTest.java`, 검색 SQL | 기존 코드 점검 |
+| 사용자 시나리오 구성과 검증 범위 정리 | `resources/features/`와 `acceptance/cucumber/steps/` | 시나리오·연결 구조 정리 |
+| 공통 데이터·헬퍼 사용 방식 정리 | `fixture/`, Cucumber의 `support/`·`api/`, 통합 테스트 내부 헬퍼 | 작성 방식 정리 |
+| 인증·알림 역할과 개선점 정리 | 8절에 제시한 기존 클래스 | 구조 분석·보완 항목 도출 |
 
-| 항목 | 설명 |
-|------|------|
-| **DELETE 필수** | `@Nested` + `@Sql` 조합에서 트랜잭션 롤백 이슈로 DELETE 필요 |
-| **created_at 포함** | 정렬 테스트 시 `created_at` 값 명시 필요 |
-| **FK 순서** | DELETE: 자식 → 부모, INSERT: 부모 → 자식 |
-| **ID 명시** | PK 값을 명시하여 테스트 예측 가능성 확보 |
-
-### 4.5 헬퍼 메서드 패턴
-
-```java
-// Request 생성 헬퍼
-private ProjectSearchRequest requestWithKeyword(String keyword) {
-    return new ProjectSearchRequest(keyword, null, null, null, null, null, null);
-}
-
-private ProjectSearchRequest requestWithCategory(ProjectCategory category) {
-    return new ProjectSearchRequest(null, category, null, null, null, null, null);
-}
-
-private ProjectSearchRequest emptyRequest() {
-    return new ProjectSearchRequest(null, null, null, null, null, null, null);
-}
-
-// 검색 실행 헬퍼
-private Page<ProjectCardResponse> search(ProjectSearchRequest request) {
-    return projectQueryService.searchV1(request, defaultPageable(), null);
-}
-
-// Pageable 헬퍼
-private Pageable defaultPageable() {
-    return PageRequest.of(DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
-}
-
-private Pageable pageableOf(int page, int size) {
-    return PageRequest.of(page, size);
-}
-
-// 결과 추출 헬퍼
-private ProjectCardResponse getFirstResult(Page<ProjectCardResponse> result) {
-    return result.getContent().get(0);
-}
-```
-
-### 4.6 상수 추출 패턴
-
-```java
-// 페이징 상수
-private static final int DEFAULT_PAGE = 0;
-private static final int DEFAULT_PAGE_SIZE = 20;
-private static final int TOTAL_SEED_PROJECTS = 20;
-
-// 시드 데이터 개수 (카테고리별, 상태별 등)
-private static final int AI_TECH_COUNT = 8;
-private static final int RECRUITING_COUNT = 16;
-
-// 검색 키워드
-private static final String KEYWORD_AI = "AI";
-private static final String KEYWORD_NOT_EXIST = "존재하지않는키워드XYZ";
-```
-
-### 4.7 DTO 검증 포인트
-
-```java
-// 필드 값 검증
-assertThat(dto.getProjectId()).isEqualTo(expected.getId());
-assertThat(dto.getProjectName()).isEqualTo("AI 개발");
-
-// 연관 데이터 변환 검증
-assertThat(dto.getCreatorName()).isEqualTo(leader.getRealName());
-assertThat(dto.getCategoryName()).isEqualTo(category.getDisplayName());
-
-// 계산된 필드 검증
-assertThat(dto.isLiked()).isFalse();
-
-// 목록 순서 검증
-assertThat(result.getContent())
-    .extracting(ProjectCardResponse::getProjectName)
-    .containsExactly("첫번째", "두번째", "세번째");
-
-// 전체 매칭 검증
-assertThat(result.getContent())
-    .allMatch(dto -> dto.getCategoryCode().equals(ProjectCategory.AI_TECH.name()));
-
-// 전체 필드 검증 (allSatisfy)
-assertThat(result.getContent()).allSatisfy(dto -> {
-    assertThat(dto.getProjectId()).isNotNull();
-    assertThat(dto.getProjectName()).isNotNull();
-    assertThat(dto.getCreatorName()).isNotNull();
-});
-```
-
----
-
-## 5. 인수 테스트 (Cucumber)
-
-### 5.1 Feature 파일
-
-```gherkin
-# language: ko
-
-@acceptance @project @search-v1
-기능: 프로젝트 검색 V1 API
-
-  @search @happy-path
-  시나리오: 키워드로 프로젝트를 검색할 수 있다
-    먼저 다음 프로젝트들이 등록되어 있다:
-      | 프로젝트명           | 카테고리  |
-      | AI 뉴스 요약 서비스  | AI_TECH  |
-    만약 V1 API로 "뉴스" 키워드로 검색하면
-    그러면 응답 코드가 "OK"이다
-    그리고 검색 결과에 "AI 뉴스 요약 서비스"가 포함된다
-```
-
-### 5.2 Step 정의
-
-```java
-public class ProjectSearchV1Steps {
-
-    @Autowired
-    private TestContext context;
-
-    @Autowired
-    private TestApiSupport api;
-
-    @만약("V1 API로 {string} 키워드로 검색하면")
-    public void v1_api로_키워드로_검색하면(String keyword) {
-        var response = api.projectSearch().searchV1(keyword, null, null);
-        context.setResponse(response);
-    }
-
-    @그러면("응답 코드가 {string}이다")
-    public void 응답_코드가_이다(String expectedCode) {
-        String actualCode = context.getResponse().jsonPath().getString("code");
-        assertThat(actualCode).isEqualTo(expectedCode);
-    }
-}
-```
-
----
-
-## 6. Fixture 클래스
-
-```java
-public class ProjectFixture {
-
-    public static Project defaultProject(Member creator) {
-        return Project.builder()
-                .creator(creator)
-                .name("테스트 프로젝트")
-                .description("테스트 프로젝트 설명")
-                .projectCategory(ProjectCategory.AI_TECH)
-                .platformCategory(PlatformCategory.WEB)
-                .recruitmentStatus(Recruitment.RECRUITING)
-                .recruitmentDeadlineType(RecruitmentDeadlineType.END_DATE)
-                .startDate(LocalDate.now())
-                .endDate(LocalDate.now().plusMonths(1))
-                .isDeleted(false)
-                .build();
-    }
-
-    public static Project withName(String name, Member creator) {
-        return Project.builder()
-                .creator(creator)
-                .name(name)
-                .description(name + " 설명")
-                .projectCategory(ProjectCategory.AI_TECH)
-                .platformCategory(PlatformCategory.WEB)
-                .recruitmentStatus(Recruitment.RECRUITING)
-                .recruitmentDeadlineType(RecruitmentDeadlineType.END_DATE)
-                .startDate(LocalDate.now())
-                .endDate(LocalDate.now().plusMonths(1))
-                .isDeleted(false)
-                .build();
-    }
-
-    public static Project withCategory(ProjectCategory category, Member creator, String name) { ... }
-    public static Project withPlatform(PlatformCategory platform, Member creator, String name) { ... }
-    public static Project withRecruitment(Recruitment recruitment, Member creator, String name) { ... }
-    public static Project withEndDate(LocalDate endDate, Member creator, String name) { ... }
-}
-
-public class MemberFixture {
-
-    public static Member defaultMember() {
-        return Member.createForTest("test@example.com", "테스트유저");
-    }
-
-    public static Member withName(String name) {
-        return Member.createForTest(name.toLowerCase() + "@example.com", name);
-    }
-
-    public static Member withEmail(String email, String name) {
-        return Member.createForTest(email, name);
-    }
-}
-```
-
----
-
-## 7. 네이밍 규칙
-
-### 클래스 네이밍
-
-| 테스트 유형 | 패턴 | 예시 |
-|-----------|------|------|
-| 단위 (Entity) | `{Entity}Test` | `ProjectTest` |
-| 통합 (Service) | `{Service}IntegrationTest` | `ProjectQueryServiceIntegrationTest` |
-
-### 메서드 네이밍
-
-```java
-// snake_case + 행위 설명
-void returns_true_when_creator_id_matches()
-void throws_exception_when_not_leader()
-void returns_projects_when_keyword_matches_project_name()
-```
-
-### DisplayName
-
-```java
-@DisplayName("생성자의 ID와 일치하면 true를 반환한다")
-@DisplayName("프로젝트명에 키워드가 포함된 프로젝트를 반환한다")
-```
-
----
-
-## 8. Checklist
-
-**단위 테스트 (Entity)**
-- [ ] 스프링 컨텍스트 없이 순수 Java
-- [ ] `@Nested`로 메서드별 그룹화
-- [ ] `@DisplayName` 한국어 설명
-- [ ] 엔티티 행동 메서드 검증 (`is*`, `validate*`, `create`)
-- [ ] 예외 케이스 검증
-
-**통합 테스트 (Service)**
-- [ ] `@SpringBootTest` + `@ActiveProfiles("test")`
-- [ ] `@Transactional`로 테스트 격리
-- [ ] `@Sql`로 시드 데이터 로드 (DELETE 포함)
-- [ ] 상수로 시드 데이터 개수/키워드 관리
-- [ ] 헬퍼 메서드로 중복 제거 (파일 맨 아래 배치)
-- [ ] **반환 DTO 필드 검증**
-- [ ] 목록 정렬 순서 검증
-- [ ] 페이징 검증
-
-**인수 테스트**
-- [ ] Feature 파일 한국어 작성
-- [ ] 시나리오별 태그 (`@happy-path`, `@edge-case`)
-
----
-
-*Last Updated: 2026-03-31*
+실제로 테스트를 실행했으면 **명령, 환경, 대상, 실행·통과·실패·건너뜀 수, 미검증 항목**을 기록합니다.
+설명 주석 추가나 빈 커밋은 새 테스트 구현·실행·리팩토링 완료의 근거로 사용하지 않습니다.
