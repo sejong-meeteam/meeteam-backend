@@ -1,14 +1,17 @@
-# SSE 멀티 인스턴스 전파(Redis Pub/Sub) 도입 및 기존 버그 수정 구현 계획
+# SSE 멀티 인스턴스 전파(Redis Pub/Sub) 도입 및 기존 버그 수정 설계 기록 (과거 계획)
 
 > 작성일: 2026-06-15
 > 대상: `domain/notification`, `web/notification`, `global/config`
-> 목적: 현재 단일 인스턴스에서만 동작하는 SSE 실시간 알림을 **다중 인스턴스(스케일아웃) 환경**에서도 동작하도록 Redis Pub/Sub으로 전파 계층을 추가하고, 동시에 발견된 모든 결함을 수정한다.
+> 당시 목적: 단일 인스턴스에서만 동작하던 SSE 실시간 알림을 **다중 인스턴스(스케일아웃) 환경**에서도 동작하도록 Redis Pub/Sub으로 전파 계층을 추가하고, 동시에 발견된 모든 결함을 수정한다.
+
+> **상태:** 1~3장은 도입 전 구조/문제 분석, 4~8장은 설계 기록, 9장은 검증 계획입니다. 당시 줄 번호와 장애 단정은 현재 재현 결과가 아닙니다. 게시 코드 `3865b451663788792d7e78c736282f8b9ff105f1`에는 Pub/Sub, INCR/UUID, 30초 주석 heartbeat, 공통 sender, LocalDateTime 봉투와 전용 serializer가 이미 있습니다. 구현과 운영 검증은 다릅니다. 현재 API/제약은 [SSE 가이드](./SSE_NOTIFICATION_GUIDE.md)를 우선합니다. 이번 감사에서는 테스트를 실행하지 않았습니다.
+> 근거: `SSENotificationService.java:137-164`, `SseEventPublisher.java:21-32`, `SseEventSubscriber.java:31-55`, `SseHeartbeatScheduler.java:25-29` (`src/main/java/com/wardk/meeteam_backend/domain/notification/service/`), `global/config/RedisConfig.java:29-58`.
 
 ---
 
-## 1. 배경 및 현재 아키텍처
+## 1. 도입 당시 배경 및 아키텍처
 
-### 1.1 현재 구조 요약
+### 1.1 도입 전 구조 요약
 
 | 구성 요소 | 저장소 | 역할 |
 |---|---|---|
@@ -16,7 +19,7 @@
 | 이벤트 캐시 (ZSET) | **Redis** `eventCache:{memberId}` | 재연결 시 재전송용 이벤트 ID 인덱스(시간순) |
 | 이벤트 데이터 (String) | **Redis** `eventCache:evt:{eventId}` | 실제 `SseEnvelope` 데이터 (TTL 2h) |
 
-### 1.2 현재 전송 흐름
+### 1.2 도입 전 전송 흐름
 
 ```
 [비즈니스 트랜잭션 커밋]
@@ -47,7 +50,7 @@ broadcastToReceiver(receiverId, type, payload)
 
 ---
 
-## 2. 발견된 문제점 (수정 대상)
+## 2. 당시 문제 분석 (현재 재현 결과 아님)
 
 | # | 심각도 | 문제 | 위치 | 근거 |
 |---|---|---|---|---|
@@ -246,12 +249,12 @@ public SseEnvelope(
 long nextSequence(Long memberId);   // stringRedisTemplate.opsForValue().increment("eventSeq:" + memberId)
 ```
 - ZSET score = `seq`(단조 증가 정수), member = `eventId`.
-- 재연결: `Last-Event-ID = "{memberId}_{seq}"` → `extractSeq` 파싱 → `rangeByScore(seq+1, +inf)` → **정확히 그 이후만**, 누락·중복 없음.
+- 재연결: `Last-Event-ID = "{memberId}_{seq}"` → `extractSeq` 파싱 → `rangeByScore(seq+1, +inf)` → 시퀀스 이후의 미만료 캐시를 조회. live/replay 경합, 만료·장애에 따른 중복·누락은 별도 처리 대상.
 - 근거:
   - **유니크**: INCR는 원자적이라 동일 ms 충돌이 원천 차단된다(P3 해결).
-  - **순서**: Redis 단일 시계가 모든 인스턴스의 순서를 정의 → clock skew 무관(P2 멀티 인스턴스의 순서 정합성 확보).
+  - **순서**: 수신자별 INCR는 번호 할당 순서를 정의하지만 캐시 쓰기/publish와 원자적으로 묶이지 않아 live 도착 순서까지 보장하지 않는다.
   - **경계 정확**: 정수 시퀀스라 `seq+1` 경계가 정확(P4 해결).
-- `eventSeq:{memberId}` 키에도 TTL(이벤트 캐시보다 길게, 예: 그대로 두거나 7일)을 둬 메모리 누수 방지. (시퀀스가 리셋돼도 캐시 TTL이 2h이므로 충돌 가능성 사실상 없음 — 별도 검토 항목)
+- 현재 `eventSeq:{memberId}` TTL은 7일이며 발급 때 갱신한다 (`EmitterRepositoryImpl.java:93-94,169-174`). 만료/Redis 초기화 후 오래된 Last-Event-ID의 정합성은 미검증이다.
 
 `emitterId`는 순서가 불필요하므로 `"{memberId}_{UUID}"`로 유니크만 보장(P3의 emitter 충돌 해결).
 
@@ -264,8 +267,8 @@ public void heartbeat() {
     emitterRepository.forEachEmitter((id, emitter) -> trySendComment(id, emitter));
 }
 ```
-- 근거: 30초 주기는 대부분 LB 기본 idle(60초)보다 짧아 연결 유지에 충분하다. SSE 주석(`:ping`)이나 `PING` 이벤트를 보낸다.
-- `@EnableScheduling` 활성화 필요(이미 있으면 재사용).
+- 현재는 30초마다 `:heartbeat` 주석, 구독 직후에만 `PING`/`connected`를 보낸다. 프록시 idle timeout·버퍼링은 별도 확인하며 연결 유지 성공을 보장하지 않는다.
+- 현재 `AsyncConfig.java:13-14`에 `@EnableAsync`, `@EnableScheduling`이 있다.
 - 전송 실패 시 즉시 정리하여 dead emitter 자연 소거(P6와 시너지).
 
 ### 5.4 P6 예외 처리/정리 통합
@@ -318,11 +321,11 @@ emitter 전송 공통 유틸로 통합하고 `catch (Exception)`으로 넓혀 `I
 
 `application-*.yml`의 Redis는 이미 구성됨(`application-prod.yml:30` `data.redis.host: redis`). **추가 인프라 불필요** — Pub/Sub은 기존 Redis 인스턴스를 그대로 사용한다(별도 채널 사전 생성 불필요).
 
-운영 점검: Redis `ConnectionFactory`가 Pub/Sub 동시 사용 시 충분한지 확인. Lettuce(Boot 기본)는 단일 커넥션으로 pub/sub + 일반 명령을 분리 처리하므로 문제없음. `RedisMessageListenerContainer`는 전용 스레드풀(`TaskExecutor`)을 사용하도록 구성한다.
+운영 점검: Redis `ConnectionFactory`가 Pub/Sub 동시 사용 시 충분한지 확인. 현재 `RedisPubSubConfig.java:25-34`는 별도 TaskExecutor를 설정하지 않는다. 연결·스레드 자원과 부하는 운영 검증 대상이다.
 
 ---
 
-## 9. 테스트 계획
+## 9. 테스트 계획 (이번 감사에서는 실행하지 않음)
 
 | 레벨 | 시나리오 |
 |---|---|
@@ -339,14 +342,14 @@ emitter 전송 공통 유틸로 통합하고 `catch (Exception)`으로 넓혀 `I
 
 | 리스크 | 영향 | 완화 |
 |---|---|---|
-| Redis 장애 | publish 실패 → 실시간 전송 중단 | 캐시 replay로 복구 가능. publish는 try/catch로 격리(DB·트랜잭션엔 영향 없음) |
-| at-most-once 전달 | 발행 순간 연결 끊긴 사용자는 그 순간 누락 | 재연결 시 Redis 캐시 replay가 메움(설계상 의도) |
+| Redis 장애 | publish 실패 → 실시간 전송 중단 | publish 예외는 격리되지만 INCR/캐시 저장 실패도 가능. 성공적으로 저장된 미만료 캐시만 재연결 때 복구 가능하며 다른 Redis 의존 경로의 정상 여부는 별도 |
+| at-most-once 전달 | 발행 순간 연결 끊긴 사용자는 그 순간 누락 | 재연결 시 미만료 캐시 replay로 보완을 시도하나 무누락 보장은 아님 |
 | 역직렬화 보안 | default typing 가젯 공격 | `PolymorphicTypeValidator`로 허용 패키지 제한(5.1) |
-| 메시지 폭증 | 모든 인스턴스가 모든 메시지 수신 | 현 트래픽 규모에서 무시 가능. 필요 시 per-user 채널로 후속 전환 |
-| 기존 `redisObjectTemplate` 사용처 영향 | typing 변경이 다른 소비자에 영향 | **검증 완료**: 해당 빈 사용처는 `EmitterRepositoryImpl` 단독 |
+| 메시지 폭증 | 모든 인스턴스가 모든 메시지 수신 | 실제 트래픽/부하를 검증하지 않았음. 필요 시 per-user 채널 전환 검토 |
+| 기존 `redisObjectTemplate` 사용처 영향 | typing 변경이 다른 소비자에 영향 | 현재 `EmitterRepositoryImpl`, `SseEventPublisher`가 사용하며 subscriber도 같은 serializer로 복원한다. 호환성 실행 검증은 별도 |
 
 ### 롤백
-각 단계가 독립적이므로 Pub/Sub 단계(4)만 되돌리면 기존 단일 인스턴스 직접 전송으로 회귀 가능(단, 1~3단계 버그 수정은 유지 권장).
+과거 롤백 아이디어이며 운영 절차가 아니다. 현재 직접 전송 전환 플래그는 없다. 코드 변경·캐시/직렬화 호환성 검토·검증 없이 운영 롤백 지침으로 사용하지 않는다.
 
 ---
 
