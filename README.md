@@ -8,7 +8,9 @@ Spring Boot 기반 REST API와 SSE 실시간 알림을 제공합니다.
 - **Java 17 / Spring Boot 3.4.5**
 - **Spring Data JPA / QueryDSL**: 데이터 접근 및 검색
 - **Spring Security / JWT(JJWT)**: 인증·인가 및 토큰 갱신
-- **MySQL / Redis**: 데이터 저장 및 캐시
+- **MySQL**: 배포 환경의 관계형 데이터 저장
+- **Redis**: 인증 일회용 코드·토큰 블랙리스트 및 SSE 재전송 캐시·알림 Pub/Sub
+- **Ehcache / JCache**: 메인 페이지 프로젝트 조회 캐시
 - **Swagger/OpenAPI / Lombok**: API 문서화 및 코드 생성
 - **Spring Boot Actuator**: 애플리케이션 상태 확인
 - **Docker / Docker Compose**: 애플리케이션 및 데이터 서비스 실행
@@ -52,7 +54,8 @@ src/main/java/com/wardk/meeteam_backend/
 ## 빌드 및 실행 환경
 
 - 빌드에는 Java 17과 저장소의 Gradle Wrapper를 사용합니다.
-- 테스트 환경은 MySQL 8.0과 Redis 7을 사용합니다.
+- EC2 테스트 배포와 `compose-test.yml`은 MySQL 8.0과 Redis 7을 사용합니다.
+- 자동화 테스트의 `src/test/resources/application-test.yml`은 H2 메모리 DB와 Redis `localhost:6379`를 지정합니다. 배포용 `src/main/resources/application-test.yml`과 구분하며, 실행 전 테스트 데이터와 외부 호출의 격리를 확인해야 합니다.
 - 컨테이너 실행 및 자동 배포에는 Docker와 Docker Compose가 필요합니다.
 - DB·Redis·JWT·AWS 설정 등은 실행 환경에 맞게 별도로 준비해야 합니다. 환경변수 예시는 [.env.test.example](.env.test.example)을 참고합니다.
 - Spring 프로파일은 실행 환경에 맞게 지정합니다. 현재 테스트 배포는 `test` 프로파일을 사용합니다.
@@ -84,7 +87,7 @@ Swagger 경로는 코드 설정 기준이며, 표의 주소가 항상 접속 가
 
 인증된 사용자는 `GET /api/v1/subscribe`로 SSE 알림 스트림을 구독합니다.
 알림 목록과 미확인 개수는 `GET /api/v1/notifications` 및 `GET /api/v1/notifications/unread/count`로 조회합니다.
-프론트엔드는 EventSource로 구독하고 Next.js API 프록시를 통해 백엔드에 연결합니다.
+브라우저에서 EventSource로 연결할 때는 인증 쿠키 전달과 CORS 설정을 확인해야 합니다. 프론트엔드 프록시의 구현·배포 상태는 이 백엔드 저장소만으로 보장하지 않습니다.
 
 ## 파일 저장
 
@@ -102,8 +105,8 @@ S3 업로드·삭제 서비스 코드가 포함되어 있습니다.
 ## main 테스트 서버 자동 배포
 
 `main` push → 최소 CI(테스트/린트 없음) → JAR 빌드 → 기존 EC2 앱 교체 → 상태 및 테스트 계정 인증 확인.
-실패 시 이전 앱으로 복구하며 DB·Redis·Nginx·HTTPS·비밀 설정을 유지합니다.
-테스트 계정 인증 확인은 서버에서 해당 기능이 활성화된 경우 수행합니다.
+앱 교체 후 검사에 실패하면 이전 앱 복구를 시도하며 DB·Redis·Nginx·HTTPS·비밀 설정을 유지합니다. 복구 실패 시에는 관리자 조치가 필요합니다.
+현재 배포 스크립트는 기존 `.env.test-account` 파일과 `TEST_ACCOUNT_ENABLED=true`를 필수로 확인하며, 학번 `99990001`의 로그인과 쿠키를 이용한 프로필 조회가 실패하면 배포를 실패로 처리합니다.
 
 테스트 배포는 EC2, Elastic IP, DNS 도메인 연결, Nginx 리버스 프록시 및 Certbot 기반 HTTPS 구성을 사용합니다.
 자체 호스팅 runner가 설치되어 있고 EC2가 실행 중이어야 자동 배포가 진행됩니다.
