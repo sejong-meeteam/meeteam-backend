@@ -1,12 +1,12 @@
 # 세종대 포털 로그인 흐름
 
 > 기준: 공개 커밋 `3865b451663788792d7e78c736282f8b9ff105f1`. 배포 환경이나 미커밋 테스트 파일이 아닌 해당 커밋의 소스 계약을 설명합니다.
-> 이메일/비밀번호 자체 인증 및 Google/GitHub OAuth2는 제거되었습니다. 인증·쿠키 처리는 [AuthController](../src/main/java/com/wardk/meeteam_backend/web/auth/controller/AuthController.java), 프로필은 [MemberController](../src/main/java/com/wardk/meeteam_backend/web/member/controller/MemberController.java)를 참고하세요.
+> 인증·쿠키 처리는 [AuthController](../src/main/java/com/wardk/meeteam_backend/web/auth/controller/AuthController.java), 프로필은 [MemberController](../src/main/java/com/wardk/meeteam_backend/web/member/controller/MemberController.java)를 참고하세요.
 
 ## 개요
 
 세종대학교 포털 계정을 통한 로그인/회원가입 흐름입니다.
-신규 회원은 Redis 일회용 코드로 온보딩을 처리합니다. OAuth2 리다이렉트나 토큰 교환 API는 사용하지 않습니다.
+신규 회원은 Redis 일회용 코드로 온보딩을 처리합니다.
 일반 계정은 매 로그인마다 실제 포털 인증을 거칩니다. 명시적으로 활성화한 비운영 테스트 계정만 예외입니다.
 
 ---
