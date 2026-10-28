@@ -126,7 +126,7 @@
 
 ### 제거되어 현재 라우트가 없는 항목
 
-기존 회원·알림 비버전 경로, GitHub 레포 연결, CodeReviewController, PullRequestController, GithubWebhookController는 기준 커밋의 컨트롤러에 없습니다. 미완료 Legacy 목록이 아니라 제거된 과거 항목입니다. 일반/OAuth2 회원가입, 토큰 교환, 이메일 중복 확인 경로도 현재 AuthController에 없습니다.
+기존 회원·알림 비버전 경로, GitHub 레포 연결, CodeReviewController, PullRequestController, GithubWebhookController는 기준 커밋의 컨트롤러에 없습니다. 미완료 Legacy 목록이 아니라 제거된 과거 항목입니다. 이전 이메일 회원가입과 이메일 중복 확인 경로도 현재 AuthController에 없습니다.
 
 ---
 
