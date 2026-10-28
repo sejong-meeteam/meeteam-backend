@@ -69,7 +69,7 @@ bash ./gradlew bootJar -x test
 
 이 명령은 JAR만 빌드하며 DB·Redis나 서버를 실행하지 않습니다.
 현재 저장소의 Compose 파일에는 ECR 이미지 주소가 포함되어 있으므로, 새 환경에서는 이미지와 환경 설정을 확인한 뒤 사용해야 합니다.
-기존 EC2 배포 절차는 [MAIN_AUTO_DEPLOY.md](docs/MAIN_AUTO_DEPLOY.md)를 참고합니다.
+기존 EC2 배포 동작은 [배포 워크플로](.github/workflows/deploy-main.yml)와 [배포 스크립트](scripts/deploy-main.sh)를 참고합니다.
 
 ## API 문서 및 상태 확인
 
@@ -110,4 +110,4 @@ S3 업로드·삭제 서비스 코드가 포함되어 있습니다.
 
 테스트 배포는 EC2, Elastic IP, DNS 도메인 연결, Nginx 리버스 프록시 및 Certbot 기반 HTTPS 구성을 사용합니다.
 자체 호스팅 runner가 설치되어 있고 EC2가 실행 중이어야 자동 배포가 진행됩니다.
-최초 설정과 운영 절차는 [MAIN_AUTO_DEPLOY.md](docs/MAIN_AUTO_DEPLOY.md)를 참고합니다.
+runner 최초 설정은 [설치 스크립트](scripts/setup-test-runner.sh)를 참고합니다.
