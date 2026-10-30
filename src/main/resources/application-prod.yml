@@ -49,10 +49,9 @@ jwt:
 cloud:
     aws:
         credentials:
-            access-key: ${AWS_ACCESS_KEY_ID}
-            secret-key: ${AWS_SECRET_ACCESS_KEY}
+            use-default-aws-credentials-chain: true
         s3:
-            bucket: ${S3_BUCKET:meeteam-bucket}
+            bucket: ${S3_BUCKET}
         region:
             static: ${AWS_REGION:ap-northeast-2}
         stack:
