@@ -365,6 +365,11 @@ public class Project extends BaseEntity {
         }
     }
 
+    /** Clear only on an explicit, authorized image deletion request. */
+    public void removeImage() {
+        this.imageUrl = null;
+    }
+
     /**
      * 모든 포지션이 마감되면 자동으로 모집 상태를 CLOSED로 변경합니다.
      */

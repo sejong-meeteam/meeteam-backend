@@ -22,6 +22,7 @@ public record ProjectEditCommand(
         RecruitmentDeadlineType recruitmentDeadlineType,
         JobPositionCode leaderJobPositionCode,
         List<RecruitmentEditCommand> recruitments,
-        boolean confirmDeletePositionsWithPendingApplicants
+        boolean confirmDeletePositionsWithPendingApplicants,
+        boolean removeImage
 ) {
 }

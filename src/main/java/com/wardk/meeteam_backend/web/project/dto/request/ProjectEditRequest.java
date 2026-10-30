@@ -65,7 +65,10 @@ public record ProjectEditRequest(
         List<RecruitmentEditRequest> recruitments,
 
         @Schema(description = "대기 지원자가 있는 포지션 삭제 확인 여부", example = "false")
-        Boolean confirmDeletePositionsWithPendingApplicants
+        Boolean confirmDeletePositionsWithPendingApplicants,
+
+        @Schema(description = "기존 커버 이미지 삭제 여부. 생략/false면 유지하며, true와 새 파일은 동시에 보낼 수 없습니다.", example = "false")
+        Boolean removeImage
 ) {
     /**
      * Request DTO를 도메인 Command로 변환합니다.
@@ -86,7 +89,8 @@ public record ProjectEditRequest(
                 this.recruitmentDeadlineType,
                 this.leaderJobPositionCode,
                 recruitmentCommands,
-                this.confirmDeletePositionsWithPendingApplicants != null && this.confirmDeletePositionsWithPendingApplicants
+                Boolean.TRUE.equals(this.confirmDeletePositionsWithPendingApplicants),
+                Boolean.TRUE.equals(this.removeImage)
         );
     }
 }

@@ -100,6 +100,12 @@ public class ProjectEditServiceImpl implements ProjectEditService {
         project.validateLeaderPermission(requesterEmail);
         project.validateEditable();
 
+        // Deletion must be explicit; an omitted file still means "keep the existing image".
+        if (command.removeImage() && file != null && !file.isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST);
+        }
+        String previousImageUrl = project.getImageUrl();
+
         // 3단계: 이미지 업로드
         Member creator = findMemberByEmail(requesterEmail);
         String imageUrl = uploadProjectImage(file, creator.getId());
@@ -117,6 +123,10 @@ public class ProjectEditServiceImpl implements ProjectEditService {
                 imageUrl
         );
 
+        if (command.removeImage()) {
+            project.removeImage();
+        }
+
         // 5단계: 모집 포지션 업데이트 및 자동 거절 처리
         int autoRejectedCount = updateRecruitments(project, command);
 
@@ -124,6 +134,11 @@ public class ProjectEditServiceImpl implements ProjectEditService {
         project.updateRecruitmentStatusBasedOnPositions();
 
         projectRepository.save(project);
+
+        if (command.removeImage() && previousImageUrl != null && !previousImageUrl.isBlank()) {
+            // S3FileService defers object deletion until this outer transaction commits.
+            s3FileService.deleteFile(previousImageUrl);
+        }
 
         log.info("프로젝트 수정 완료 - projectId: {}, requesterEmail: {}", projectId, requesterEmail);
 
