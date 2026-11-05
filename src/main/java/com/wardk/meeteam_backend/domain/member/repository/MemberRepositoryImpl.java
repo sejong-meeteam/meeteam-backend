@@ -16,6 +16,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.support.PageableExecutionUtils;
 
 import java.util.List;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import com.wardk.meeteam_backend.domain.member.entity.UserRole;
+import com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility;
 
 import static com.wardk.meeteam_backend.domain.member.entity.QMember.member;
 import static com.wardk.meeteam_backend.domain.member.entity.QMemberJobPosition.memberJobPosition;
@@ -47,7 +51,7 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
                 qf.select(member)
                         .from(member)
                         .where(
-                                member.deletedAt.isNull(),
+                                publiclyVisibleMember(),
                                 nameContains(name),
                                 jobFieldIdEquals(jobFieldId),
                                 techStackNamesExist(techStackNames)
@@ -64,7 +68,7 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
                 .select(member)
                 .from(member)
                 .where(
-                        member.deletedAt.isNull(),
+                        publiclyVisibleMember(),
                         nameContains(name),
                         jobFieldIdEquals(jobFieldId),
                         techStackNamesExist(techStackNames)
@@ -78,7 +82,8 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
                 JPQLQuery<Long> projectCountExpr = JPAExpressions
                         .select(projectMember.count())
                         .from(projectMember)
-                        .where(projectMember.member.eq(member));
+                        .where(projectMember.member.eq(member),
+                                projectMember.project.visibility.eq(ProjectVisibility.VISIBLE));
                 query.orderBy(new OrderSpecifier<>(direction, projectCountExpr));
             } else {
                 getQuerydsl().applySorting(Sort.by(sortOrder), query);
@@ -94,13 +99,20 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
                 .select(member.count())
                 .from(member)
                 .where(
-                        member.deletedAt.isNull(),
+                        publiclyVisibleMember(),
                         nameContains(name),
                         jobFieldIdEquals(jobFieldId),
                         techStackNamesExist(techStackNames)
                 );
 
         return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
+    }
+
+    private BooleanExpression publiclyVisibleMember() {
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+        return member.deletedAt.isNull()
+                .and(member.role.ne(UserRole.ADMIN))
+                .and(member.suspended.isFalse().or(member.suspendedUntil.loe(now)));
     }
 
     /**
@@ -170,7 +182,7 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
             return applyPagination(pageable, qf ->
                     qf.select(member)
                             .from(member)
-                            .where(member.deletedAt.isNull())
+                            .where(publiclyVisibleMember())
             );
         }
 
@@ -178,7 +190,7 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
         JPAQuery<Member> query = queryFactory
                 .select(member)
                 .from(member)
-                .where(member.deletedAt.isNull());
+                .where(publiclyVisibleMember());
 
         for (Sort.Order sortOrder : pageable.getSort()) {
             Order direction = sortOrder.isAscending() ? Order.ASC : Order.DESC;
@@ -187,7 +199,8 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
                 JPQLQuery<Long> projectCountExpr = JPAExpressions
                         .select(projectMember.count())
                         .from(projectMember)
-                        .where(projectMember.member.eq(member));
+                        .where(projectMember.member.eq(member),
+                                projectMember.project.visibility.eq(ProjectVisibility.VISIBLE));
                 query.orderBy(new OrderSpecifier<>(direction, projectCountExpr));
             } else {
                 getQuerydsl().applySorting(Sort.by(sortOrder), query);
@@ -202,7 +215,7 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
         JPAQuery<Long> countQuery = queryFactory
                 .select(member.count())
                 .from(member)
-                .where(member.deletedAt.isNull());
+                .where(publiclyVisibleMember());
 
         return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }

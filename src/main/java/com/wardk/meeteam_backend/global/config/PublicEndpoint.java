@@ -33,6 +33,12 @@ public enum PublicEndpoint {
     LOGIN("*", "/api/login"),
     AUTH_V1("*", "/api/v1/auth/**"),
     REGISTER("*", "/api/register"),
+    // Browser redirect: state and initiating member are checked by the OAuth service.
+    GITHUB_ACCOUNT_CALLBACK("GET", "/api/v1/github/oauth/callback"),
+    GITHUB_APP_SETUP("GET", "/api/v1/github/app/setup"),
+    GITHUB_APP_SETUP_OAUTH("GET", "/api/v1/github/app/setup/oauth/callback"),
+    GITHUB_WEBHOOK("POST", "/api/v1/github/webhooks"),
+    GITHUB_ACTIVITY("GET", "/api/v1/projects/*/github/activity"),
 
     // ===== Files =====
     FILES_V1("*", "/api/v1/files/**"),

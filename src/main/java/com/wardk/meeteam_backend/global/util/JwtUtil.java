@@ -10,12 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Objects;
+import com.wardk.meeteam_backend.web.auth.dto.CustomSecurityUserDetails;
 import java.util.Date;
 import java.util.UUID;
 
@@ -90,6 +92,19 @@ public class JwtUtil {
             .get("id", Long.class);
   }
 
+  /** Legacy tokens were issued before authVersion existed. */
+  public long getAuthVersion(String token) {
+    Object value = getClaims(token).get("authVersion");
+    if (value == null) {
+      return 0L;
+    }
+    if (!(value instanceof Number number) || number.longValue() < 0
+            || number.doubleValue() != number.longValue()) {
+      throw new IllegalArgumentException("Invalid authVersion claim");
+    }
+    return number.longValue();
+  }
+
   /**
    * 토큰에서 JTI (JWT ID) 추출
    */
@@ -108,7 +123,7 @@ public class JwtUtil {
    */
   public String createAccessToken(Member member) {
     log.info("엑세스 토큰 생성 중: 회원: {}", member.getEmail());
-    return createToken(ACCESS_CATEGORY, member.getEmail(), member.getId(), accessTokenExpTime);
+    return createToken(ACCESS_CATEGORY, member.getEmail(), member.getId(), member.getAuthVersion(), accessTokenExpTime);
   }
 
   /**
@@ -116,7 +131,7 @@ public class JwtUtil {
    */
   public String createRefreshToken(Member member) {
     log.info("리프레시 토큰 생성 중: 회원: {}", member.getEmail());
-    return createToken(REFRESH_CATEGORY, member.getEmail(), member.getId(), refreshTokenExpTime);
+    return createToken(REFRESH_CATEGORY, member.getEmail(), member.getId(), member.getAuthVersion(), refreshTokenExpTime);
   }
 
   /**
@@ -130,6 +145,7 @@ public class JwtUtil {
             .claim("category", REFRESH_CATEGORY)
             .claim("username", member.getEmail())
             .claim("id", member.getId())
+            .claim("authVersion", member.getAuthVersion())
             .issuedAt(new Date(System.currentTimeMillis() - 2000))  // 2초 전 발급
             .expiration(new Date(System.currentTimeMillis() - 1000))  // 1초 전 만료
             .signWith(getSignKey())
@@ -140,13 +156,14 @@ public class JwtUtil {
    * JWT 토큰 생성 메서드
    * @return 생성된 JWT 토큰
    */
-  private String createToken(String category, String email, Long memberId, Long expiredAt) {
+  private String createToken(String category, String email, Long memberId, long authVersion, Long expiredAt) {
     return Jwts.builder()
             .id(UUID.randomUUID().toString())  // JTI 추가 (블랙리스트용 고유 식별자)
             .subject(email)
             .claim("category", category)
             .claim("username", email)
             .claim("id", memberId)
+            .claim("authVersion", authVersion)
             .issuedAt(new Date(System.currentTimeMillis()))
             .expiration(new Date(System.currentTimeMillis() + expiredAt))
             .signWith(getSignKey())
@@ -249,7 +266,7 @@ public class JwtUtil {
    * @return 리프레시 토큰 만료 날짜
    */
   public LocalDateTime getRefreshExpiryDate() {
-    return LocalDateTime.now().plusSeconds(refreshTokenExpTime / 1000);
+    return LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusSeconds(refreshTokenExpTime / 1000);
   }
 
   /**
@@ -262,7 +279,14 @@ public class JwtUtil {
     Claims claims = getClaims(token);
     String username = claims.getSubject();
     log.info("JWT에서 인증정보 파싱: username={}", username);
-    UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+    CustomSecurityUserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+    Member member = userDetails.getMember();
+    if (!ACCESS_CATEGORY.equals(getCategory(token)) || member.getId() == null || member.isDeleted() || member.isSuspended()
+            || !Objects.equals(member.getEmail(), getUsername(token))
+            || !Objects.equals(member.getId(), getMemberId(token))
+            || member.getAuthVersion() != getAuthVersion(token)) {
+      throw new IllegalArgumentException("Invalid member authentication");
+    }
     return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
   }
 

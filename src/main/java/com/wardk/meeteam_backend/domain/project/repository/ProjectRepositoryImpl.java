@@ -34,7 +34,7 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
                 .from(project)
                 .join(project.creator, member).fetchJoin()
                 .where(
-                    notDeleted(),
+                    publiclyVisible(),
                     platformCategoryEq(condition.getPlatformCategory()),
                     recruitmentEq(condition.getRecruitment()),
                     jobFieldCodeEq(condition.getJobFieldCode()),
@@ -53,7 +53,7 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
                 .from(project)
                 .join(project.creator, member).fetchJoin()
                 .where(
-                    notDeleted(),
+                    publiclyVisible(),
                     platformCategoryEq(condition.getPlatformCategory()),
                     recruitmentEq(condition.getRecruitment()),
                     jobFieldCodeEq(condition.getJobFieldCode()),
@@ -70,7 +70,7 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
                         .from(project)
                         .join(project.creator, member).fetchJoin()
                         .where(
-                                notDeleted(),
+                                publiclyVisible(),
                                 projectCategoryEq(condition.getProjectCategory())
                         ));
     }
@@ -112,8 +112,8 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
             .or(project.creator.realName.containsIgnoreCase(keyword));
     }
 
-    private BooleanExpression notDeleted() {
-        return project.isDeleted.eq(false);
+    private BooleanExpression publiclyVisible() {
+        return project.visibility.eq(ProjectVisibility.VISIBLE);
     }
 
 

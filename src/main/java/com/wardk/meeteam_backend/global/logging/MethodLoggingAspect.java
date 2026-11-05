@@ -124,6 +124,12 @@ public class MethodLoggingAspect {
      * @throws Throwable 메서드 실행 중 발생할 수 있는 모든 예외
      */
     private Object logMethodExecutionWithType(ProceedingJoinPoint joinPoint, String type) throws Throwable {
+        // OAuth codes, signed state, PKCE verifiers and authorize URLs must never enter argument/result logs.
+        String targetName = joinPoint.getTarget().getClass().getName();
+        if (targetName.startsWith("com.wardk.meeteam_backend.domain.github.")
+                || targetName.startsWith("com.wardk.meeteam_backend.web.github.")) {
+            return joinPoint.proceed();
+        }
         Logger targetLogger = LoggerFactory.getLogger(joinPoint.getTarget().getClass());
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         String methodName = signature.getName();

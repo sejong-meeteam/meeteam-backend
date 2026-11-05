@@ -6,7 +6,10 @@ public enum NotificationType {
     PROJECT_MY_APPLY(false), // actor 불필요
     PROJECT_APPROVE(false),
     PROJECT_REJECT(false),
-    PROJECT_END(false);
+    PROJECT_END(false),
+    GITHUB_REPO_INVITED(false),
+    GITHUB_REVIEW_REQUESTED(false),
+    GITHUB_PR_MERGED(false);
 
 
     private final boolean requiresActor;

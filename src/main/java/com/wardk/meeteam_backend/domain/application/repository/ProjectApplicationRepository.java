@@ -20,7 +20,7 @@ public interface ProjectApplicationRepository extends JpaRepository<ProjectAppli
             JOIN FETCH a.jobPosition jp
             JOIN FETCH jp.jobField
             WHERE a.project.id = :projectId
-            AND a.project.isDeleted = false
+            AND a.project.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE
             AND a.status = 'PENDING'
             ORDER BY a.createdAt DESC
             """)
@@ -28,7 +28,7 @@ public interface ProjectApplicationRepository extends JpaRepository<ProjectAppli
 
     @Query("SELECT a FROM ProjectApplication a " +
             "JOIN FETCH a.project p " +
-            "WHERE a.applicant.id = :applicantId AND p.isDeleted = false")
+            "WHERE a.applicant.id = :applicantId AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")
     List<ProjectApplication> findAllByApplicantId(Long applicantId);
 
     @Query("""
@@ -38,7 +38,7 @@ public interface ProjectApplicationRepository extends JpaRepository<ProjectAppli
             JOIN FETCH jp.jobField
             WHERE a.project.id = :projectId
             AND a.id = :applicationId
-            AND a.project.isDeleted = false
+            AND a.project.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE
             """)
     Optional<ProjectApplication> findByIdWithApplicantAndJobPosition(Long projectId, Long applicationId);
 
@@ -51,7 +51,7 @@ public interface ProjectApplicationRepository extends JpaRepository<ProjectAppli
             WHERE a.project.id = :projectId
             AND a.jobPosition.id = :jobPositionId
             AND a.status = 'PENDING'
-            AND a.project.isDeleted = false
+            AND a.project.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE
             """)
     List<ProjectApplication> findPendingByProjectIdAndJobPositionId(
             @Param("projectId") Long projectId,
@@ -66,7 +66,7 @@ public interface ProjectApplicationRepository extends JpaRepository<ProjectAppli
             FROM ProjectApplication a
             WHERE a.project.id = :projectId
             AND a.status = 'PENDING'
-            AND a.project.isDeleted = false
+            AND a.project.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE
             GROUP BY a.jobPosition.id
             """)
     List<Object[]> countPendingByProjectIdGroupByJobPositionId(@Param("projectId") Long projectId);

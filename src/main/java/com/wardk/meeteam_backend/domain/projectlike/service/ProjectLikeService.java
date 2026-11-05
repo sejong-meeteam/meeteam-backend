@@ -29,6 +29,9 @@ public class ProjectLikeService {
     @Transactional
     public LikeStatusResponse status(Long memberId, Long projectId) {
 
+        projectRepository.findActiveById(projectId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
+
         boolean status = projectLikeRepository.existsByMemberIdAndProjectId(memberId, projectId);
 
         return new LikeStatusResponse(status);
@@ -64,7 +67,7 @@ public class ProjectLikeService {
     @Retry
     @Transactional
     public ToggleLikeResponse toggleWithOptimistic(Long projectId, String email) {
-        Project project = projectRepository.findById(projectId)
+        Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
 
         Member member = memberRepository.findByEmailAndDeletedAtIsNull(email)

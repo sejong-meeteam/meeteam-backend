@@ -13,6 +13,7 @@ import org.hibernate.annotations.BatchSize;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,6 +80,71 @@ public class Member extends BaseEntity {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    @Column(nullable = false)
+    private boolean suspended = false;
+
+    private LocalDateTime suspendedUntil;
+
+    @Column(length = 200)
+    private String suspendReason;
+
+    private LocalDateTime lastLoginAt;
+
+    @Column(nullable = false)
+    private long authVersion = 0;
+
+    @Column(nullable = false)
+    private boolean adminWithdrawn = false;
+
+    @Column(nullable = false)
+    private long githubLinkVersion = 0;
+
+    /** Invalidate pending GitHub linking attempts without logging the member out. */
+    public void advanceGithubLinkVersion() {
+        this.githubLinkVersion = Math.incrementExact(this.githubLinkVersion);
+    }
+
+    /** Revoke existing tokens whenever an administrator changes authorization. */
+    public void changeRole(UserRole role) {
+        this.role = java.util.Objects.requireNonNull(role);
+        this.authVersion = Math.incrementExact(this.authVersion);
+    }
+
+    /** Preserve identity/history and role while permanently blocking self-service re-registration. */
+    public void forceWithdraw() {
+        this.adminWithdrawn = true;
+        this.suspended = false;
+        this.suspendedUntil = null;
+        this.suspendReason = null;
+        withdraw();
+    }
+
+    public boolean isSuspendedAt(LocalDateTime now) {
+        return suspended && (suspendedUntil == null || now.isBefore(suspendedUntil));
+    }
+
+    public boolean isSuspended() {
+        return isSuspendedAt(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
+    }
+
+    public void suspend(Integer days, String reason, LocalDateTime now) {
+        this.suspended = true;
+        this.suspendedUntil = days == null ? null : now.plusDays(days);
+        this.suspendReason = reason;
+        this.authVersion = Math.incrementExact(this.authVersion);
+    }
+
+    public void unsuspend() {
+        this.suspended = false;
+        this.suspendedUntil = null;
+        this.suspendReason = null;
+        this.authVersion = Math.incrementExact(this.authVersion);
+    }
+
+    public void recordLogin(LocalDateTime now) {
+        this.lastLoginAt = now;
+    }
 
     @Builder(access = AccessLevel.PRIVATE)
     private Member(String email, Integer age, String password, String realName,
@@ -188,7 +254,8 @@ public class Member extends BaseEntity {
      * 회원 탈퇴 처리 (소프트 삭제)
      */
     public void withdraw() {
-        this.deletedAt = LocalDateTime.now();
+        this.deletedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+        this.authVersion = Math.incrementExact(this.authVersion);
         this.isParticipating = false;
     }
 

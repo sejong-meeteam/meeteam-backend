@@ -37,6 +37,9 @@ public class Project extends BaseEntity {
     @Column(name = "project_id")
     private Long id;
 
+    @Version
+    private Long version;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id")
     private Member creator;
@@ -68,6 +71,10 @@ public class Project extends BaseEntity {
     private LocalDate endDate;
 
     private boolean isDeleted;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProjectVisibility visibility = ProjectVisibility.VISIBLE;
 
     @Column(nullable = false)
     private Integer likeCount = 0;
@@ -130,6 +137,7 @@ public class Project extends BaseEntity {
         this.githubRepositoryUrl = githubRepositoryUrl;
         this.communicationChannelUrl = communicationChannelUrl;
         this.isDeleted = isDeleted;
+        this.visibility = isDeleted ? ProjectVisibility.DELETED : ProjectVisibility.VISIBLE;
     }
 
     /**
@@ -231,7 +239,16 @@ public class Project extends BaseEntity {
     }
 
     public void delete() {
-        this.isDeleted = true;
+        changeVisibility(ProjectVisibility.DELETED);
+    }
+
+    public void changeVisibility(ProjectVisibility next) {
+        this.visibility = java.util.Objects.requireNonNull(next, "visibility");
+        this.isDeleted = next == ProjectVisibility.DELETED;
+    }
+
+    public boolean isPubliclyVisible() {
+        return visibility == ProjectVisibility.VISIBLE;
     }
 
     /**
@@ -257,6 +274,12 @@ public class Project extends BaseEntity {
         this.recruitments.forEach(RecruitmentState::close);
     }
 
+    /** Administrator closure is CLOSED, not a leader's temporary suspension. */
+    public void forceCloseRecruitment() {
+        this.recruitments.forEach(RecruitmentState::close);
+        this.recruitmentStatus = Recruitment.CLOSED;
+    }
+
     /**
      * 모집을 재개합니다 (리더 수동).
      * 인원이 안 찬 포지션만 재오픈됩니다.
@@ -280,7 +303,7 @@ public class Project extends BaseEntity {
         }
 
         boolean allClosed = this.recruitments.stream()
-                .allMatch(r -> r.getCurrentCount() >= r.getRecruitmentCount());
+                .allMatch(RecruitmentState::isClosed);
 
         if (allClosed) {
             this.recruitmentStatus = Recruitment.CLOSED;

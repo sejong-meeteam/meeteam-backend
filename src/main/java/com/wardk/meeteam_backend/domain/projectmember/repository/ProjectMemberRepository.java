@@ -18,13 +18,13 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
     @Query("SELECT pm FROM ProjectMember pm " +
             "JOIN FETCH pm.project p " +
-            "WHERE pm.member.id = :memberId AND p.isDeleted = false")
+            "WHERE pm.member.id = :memberId AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")
     List<ProjectMember> findAllByMemberId(Long memberId);
 
     /**
      * 프로젝트의 모든 멤버를 조회합니다 (Member 정보 포함)
      */
-    @Query("SELECT pm FROM ProjectMember pm JOIN FETCH pm.member m WHERE pm.project.id = :projectId")
+    @Query("SELECT pm FROM ProjectMember pm JOIN FETCH pm.member m WHERE pm.project.id = :projectId AND pm.project.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")
     List<ProjectMember> findAllByProjectIdWithMember(Long projectId);
 
     /**
@@ -35,7 +35,7 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
             JOIN FETCH pm.member m
             JOIN FETCH pm.jobPosition jp
             JOIN FETCH jp.jobField jf
-            WHERE pm.project.id = :projectId AND pm.role = 'LEADER'
+            WHERE pm.project.id = :projectId AND pm.role = 'LEADER' AND pm.project.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE
             """)
     Optional<ProjectMember> findLeaderByProjectId(@Param("projectId") Long projectId);
 

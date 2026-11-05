@@ -22,6 +22,9 @@ import com.wardk.meeteam_backend.web.application.dto.request.*;
 import com.wardk.meeteam_backend.web.application.dto.response.*;
 import com.wardk.meeteam_backend.web.auth.dto.CustomSecurityUserDetails;
 import io.micrometer.core.annotation.Counted;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -39,6 +42,9 @@ import java.util.List;
 @Transactional
 public class ProjectApplicationServiceImpl implements ProjectApplicationService {
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final ProjectRepository projectRepository;
     private final MemberRepository memberRepository;
     private final ProjectMemberRepository projectMemberRepository;
@@ -53,10 +59,14 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
     @Override
     public ApplicationResponse apply(Long projectId, Long memberId, ApplicationRequest request) {
         // 1단계: 엔티티 조회
+        // Serialize admission with administrative withdrawal before reading project state.
+        Member member = lockActiveMember(memberId);
         Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        entityManager.refresh(project, LockModeType.PESSIMISTIC_WRITE);
+        if (!project.isPubliclyVisible()) {
+            throw new CustomException(ErrorCode.PROJECT_NOT_FOUND);
+        }
         JobPosition jobPosition = jobPositionRepository.findByCode(request.jobPositionCode())
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POSITION_NOT_FOUND));
 
@@ -188,7 +198,22 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
         ProjectApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
+        if (!application.getProject().isPubliclyVisible()) {
+            throw new CustomException(ErrorCode.PROJECT_NOT_FOUND);
+        }
+
         // 2단계: 권한 검증
+        validateProjectCreator(application, requesterEmail);
+
+        // The initial read establishes authorization and IDs only. It may be stale after a lock wait.
+        lockActiveMember(application.getApplicant().getId());
+        Project project = projectRepository.findActiveById(application.getProject().getId())
+                .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
+        entityManager.refresh(project, LockModeType.PESSIMISTIC_WRITE);
+        entityManager.refresh(application, LockModeType.PESSIMISTIC_WRITE);
+        if (!project.isPubliclyVisible()) {
+            throw new CustomException(ErrorCode.PROJECT_NOT_FOUND);
+        }
         validateProjectCreator(application, requesterEmail);
 
         // 3단계: 비즈니스 규칙 검증
@@ -215,11 +240,10 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
     }
 
     private ApplicationDecisionResponse processDecision(ProjectApplication application, ApplicationStatus decision) {
-        application.updateStatus(decision);
-
         if (decision == ApplicationStatus.ACCEPTED) {
             return processAcceptance(application);
         }
+        application.updateStatus(decision);
         return processRejection(application);
     }
 
@@ -233,6 +257,9 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
                 applicantId,
                 application.getJobPosition()
         );
+        // addMember refreshes the locked project (including cascaded applications).
+        // Set the decision afterwards so refresh cannot discard an unflushed ACCEPTED state.
+        application.updateStatus(ApplicationStatus.ACCEPTED);
 
         notificationSaveService.saveForApprove(
                 application.getApplicant(),
@@ -325,6 +352,10 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
         ProjectApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
+        if (!application.getProject().isPubliclyVisible()) {
+            throw new CustomException(ErrorCode.PROJECT_NOT_FOUND);
+        }
+
         // 2단계: 본인 확인
         if (!application.isApplicant(memberId)) {
             throw new CustomException(ErrorCode.APPLICATION_CANCEL_FORBIDDEN);
@@ -345,5 +376,21 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
                 application.getProject().getId(),
                 application.getProject().getName()
         );
+    }
+
+    /** The member lock must precede every project lock or new project insert. */
+    private Member lockActiveMember(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        // Refresh with the lock itself: upgrading an already-loaded stale version through a locking query
+        // may throw before its latest deleted/suspended fields can be checked.
+        entityManager.refresh(member, LockModeType.PESSIMISTIC_WRITE);
+        if (member.isDeleted()) {
+            throw new CustomException(ErrorCode.MEMBER_WITHDRAWN);
+        }
+        if (member.isSuspended()) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        return member;
     }
 }

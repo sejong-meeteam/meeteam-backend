@@ -20,6 +20,9 @@ import com.wardk.meeteam_backend.global.response.ErrorCode;
 import com.wardk.meeteam_backend.web.project.dto.response.ProjectDeleteResponse;
 import com.wardk.meeteam_backend.web.project.dto.response.ProjectPostResponse;
 import io.micrometer.core.annotation.Counted;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -40,6 +43,9 @@ import java.util.List;
 @Transactional
 public class ProjectCommandServiceImpl implements ProjectCommandService {
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final S3FileService s3FileService;
     private final ProjectRepository projectRepository;
     private final MemberRepository memberRepository;
@@ -53,7 +59,7 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
     @Counted("project.create")
     @Override
     public ProjectPostResponse create(ProjectPostCommand command, MultipartFile file, String requesterEmail) {
-        Member creator = findMemberByEmail(requesterEmail);
+        Member creator = lockActiveMember(findMemberByEmail(requesterEmail).getId());
         String imageUrl = uploadProjectImage(file, creator.getId());
 
         // 값 객체로 마감 정책 검증 캡슐화
@@ -139,5 +145,21 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
                 .findByCode(creatorJobPositionCode)
                 .orElseThrow(() -> new CustomException(ErrorCode.JOB_POSITION_NOT_FOUND));
         projectMemberService.addCreator(project.getId(), creator.getId(), creatorPosition);
+    }
+
+    /** The member lock must precede every project lock or new project insert. */
+    private Member lockActiveMember(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        // Refresh with the lock itself: upgrading an already-loaded stale version through a locking query
+        // may throw before its latest deleted/suspended fields can be checked.
+        entityManager.refresh(member, LockModeType.PESSIMISTIC_WRITE);
+        if (member.isDeleted()) {
+            throw new CustomException(ErrorCode.MEMBER_WITHDRAWN);
+        }
+        if (member.isSuspended()) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        return member;
     }
 }

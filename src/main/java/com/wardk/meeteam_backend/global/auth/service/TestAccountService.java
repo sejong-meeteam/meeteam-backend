@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /** Explicitly opt-in, non-production login for one reserved test account. */
 @Service
@@ -62,7 +64,7 @@ public class TestAccountService implements ApplicationRunner {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenExchangeResult login(String username, String submittedPassword) {
         checkAttemptLimit();
         if (submittedPassword == null || submittedPassword.getBytes(StandardCharsets.UTF_8).length > 72) {
@@ -74,6 +76,8 @@ public class TestAccountService implements ApplicationRunner {
         if (member == null || !isTestMember(member) || !matches) {
             throw new CustomException(ErrorCode.BAD_CREDENTIALS);
         }
+        AuthService.requireActiveLogin(member);
+        member.recordLogin(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
         return new TokenExchangeResult(jwt.createAccessToken(member), jwt.createRefreshToken(member));
     }
 

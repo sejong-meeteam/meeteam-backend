@@ -19,7 +19,6 @@ import com.wardk.meeteam_backend.web.project.dto.response.ProjectDetailResponse;
 import com.wardk.meeteam_backend.web.project.dto.response.ProjectListResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -96,11 +95,8 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
 
 
 
-    @Cacheable(
-            value = "mainPageProjects",
-            key = "'page_0_size_20_sort_' + #pageable.sort.toString() + '_category_all'",
-            condition = "#pageable.pageNumber == 0 && #userDetails == null && #pageable.pageSize == 20 && #condition.projectCategory == null"
-    )
+    // Always re-check public visibility. Caching full cards can expose moderated projects
+    // after a committed hide/delete, including in-flight cache repopulation races.
     @Override
     public Page<ProjectCardResponse> searchForMainPage(CategoryCondition condition, Pageable pageable,
             CustomSecurityUserDetails userDetails) {

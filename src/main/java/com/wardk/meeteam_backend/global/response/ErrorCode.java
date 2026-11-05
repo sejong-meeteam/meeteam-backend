@@ -16,6 +16,16 @@ public enum ErrorCode {
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "COMMON400", "잘못된 요청입니다."),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "COMMON403", "접근이 거부되었습니다"),
 
+    // ADMIN
+    ADMIN_FORBIDDEN(HttpStatus.FORBIDDEN, "ADMIN403", "관리자 권한이 필요합니다."),
+    ADMIN_INVALID_REQUEST(HttpStatus.BAD_REQUEST, "ADMIN_INVALID_REQUEST", "관리자 요청 값이 올바르지 않습니다."),
+    ADMIN_SELF_ACTION(HttpStatus.BAD_REQUEST, "ADMIN_SELF_ACTION", "본인 계정에는 해당 조치를 할 수 없습니다."),
+    ADMIN_LAST_ADMIN(HttpStatus.CONFLICT, "ADMIN_LAST_ADMIN", "마지막 관리자의 권한을 해제하거나 이용을 제한할 수 없습니다."),
+    MEMBER_HAS_LED_PROJECTS(HttpStatus.CONFLICT, "MEMBER_HAS_LED_PROJECTS", "노출 중인 리더 프로젝트를 먼저 숨김 또는 삭제해 주세요."),
+    PROJECT_LEADER_EXPEL(HttpStatus.BAD_REQUEST, "PROJECT_LEADER_EXPEL", "리더는 팀원에서 제외할 수 없습니다."),
+    ADMIN_INVALID_STATE(HttpStatus.CONFLICT, "ADMIN_INVALID_STATE", "대상의 상태가 올바르지 않습니다."),
+    ADMIN_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "ADMIN_TARGET_NOT_FOUND", "대상을 찾을 수 없습니다."),
+
     // AUTH
     EMPTY_EMAIL(HttpStatus.BAD_REQUEST, "AUTH401", "이메일을 입력해주세요"),
     EMPTY_PASSWORD(HttpStatus.BAD_REQUEST, "AUTH402", "비밀번호를 입력해주세요"),
@@ -42,6 +52,7 @@ public enum ErrorCode {
     FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "FILE405", "파일 크기가 허용된 크기를 초과했습니다."),
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "FILE413", "업로드 가능한 파일 크기(최대 10MB)를 초과했습니다."),
 
+    MEMBER_SUSPENDED(HttpStatus.FORBIDDEN, "MEMBER_SUSPENDED", "정지된 회원입니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER404", "회원을 찾을 수 없습니다."),
     MEMBER_WITHDRAWN(HttpStatus.UNAUTHORIZED, "MEMBER401", "탈퇴한 회원입니다."),
 
@@ -110,8 +121,20 @@ public enum ErrorCode {
     FAILED_TO_PARSE_REPO_URL(HttpStatus.BAD_REQUEST, "PROJECT_REPO400", "저장소 URL 파싱에 실패했습니다."),
 
 
+    GITHUB_FORBIDDEN(HttpStatus.FORBIDDEN, "GITHUB403", "프로젝트 관리 권한이 없습니다."),
+    GITHUB_REPOSITORY_NOT_LINKED(HttpStatus.NOT_FOUND, "GITHUB_REPOSITORY_NOT_LINKED", "연결된 GitHub 저장소가 없습니다."),
+    GITHUB_REPOSITORY_TAKEN(HttpStatus.CONFLICT, "GITHUB_REPOSITORY_TAKEN", "다른 프로젝트에 이미 연결된 저장소입니다."),
+    GITHUB_ACCOUNT_NOT_LINKED(HttpStatus.CONFLICT, "GITHUB_ACCOUNT_NOT_LINKED", "GitHub 계정을 먼저 연결해 주세요."),
+    GITHUB_WEBHOOK_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "GITHUB_WEBHOOK_UNAUTHORIZED", "GitHub 웹훅 서명이 유효하지 않습니다."),
+    GITHUB_PAYLOAD_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "GITHUB_PAYLOAD_TOO_LARGE", "GitHub 웹훅 요청이 너무 큽니다."),
+    GITHUB_INVALID_REQUEST(HttpStatus.BAD_REQUEST, "GITHUB400", "GitHub 연결 요청을 확인해 주세요."),
+    GITHUB_INVALID_STATE(HttpStatus.BAD_REQUEST, "GITHUB_INVALID_STATE", "GitHub 연결 요청이 만료되었거나 유효하지 않습니다. 다시 시도해 주세요."),
+    GITHUB_ACCOUNT_TAKEN(HttpStatus.CONFLICT, "GITHUB_ACCOUNT_TAKEN", "다른 회원에게 연결된 GitHub 계정입니다."),
+    GITHUB_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "GITHUB_NOT_CONFIGURED", "GitHub 계정 연결을 아직 사용할 수 없습니다."),
+    GITHUB_UPSTREAM_ERROR(HttpStatus.BAD_GATEWAY, "GITHUB_UPSTREAM_ERROR", "GitHub에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+
     FAILED_TO_CREATE_APP_JWT(HttpStatus.BAD_REQUEST, "GITHUB400", "GitHub App JWT 생성에 실패했습니다."),
-    GITHUB_APP_NOT_INSTALLED(HttpStatus.BAD_REQUEST, "GITHUB401", "해당 레포에 GitHub App이 설치되지 않았습니다."),
+    GITHUB_APP_NOT_INSTALLED(HttpStatus.CONFLICT, "GITHUB_APP_NOT_INSTALLED", "프로젝트에 GitHub App을 먼저 설치해 주세요."),
     GITHUB_API_ERROR(HttpStatus.BAD_GATEWAY, "GITHUB502", "GitHub API 요청 중 오류가 발생했습니다."),
 
     // 메인페이지 관련 에러 코드

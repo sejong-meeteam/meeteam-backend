@@ -36,6 +36,9 @@ public class ProjectSearchResponse {
 
     private LocalDate localDate;
 
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS)
+    private com.wardk.meeteam_backend.web.mainpage.dto.response.ProjectCardResponse.GithubActivity githubActivity;
+
     public void settingSkills(Project project) {
         skills = project.getProjectSkills()
                 .stream()

@@ -61,8 +61,10 @@ public class SecurityConfig {
                 )
                 // 인증 필요 없는(화이트리스트) 경로 한 곳에서 관리
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers(securityUrls.getRequestMatchers()).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Guard the entire admin namespace, including future endpoints.
+                        .requestMatchers("/api/v1/admin", "/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers(securityUrls.getRequestMatchers()).permitAll()
                         .anyRequest().authenticated()
                 )
                 // 완전한 STATELESS (세션 사용하지 않음)

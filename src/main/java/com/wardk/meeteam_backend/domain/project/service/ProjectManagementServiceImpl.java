@@ -10,6 +10,9 @@ import com.wardk.meeteam_backend.global.response.ErrorCode;
 import com.wardk.meeteam_backend.web.project.dto.response.MemberExpelResponse;
 import com.wardk.meeteam_backend.web.project.dto.response.RecruitmentStatusResponse;
 import com.wardk.meeteam_backend.web.project.dto.response.TeamManagementResponse;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +28,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class ProjectManagementServiceImpl implements ProjectManagementService {
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
@@ -86,10 +92,11 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     @Override
     public MemberExpelResponse expelMember(Long projectId, Long memberId, String requesterEmail) {
         // 1단계: 엔티티 조회 및 기본 검증 (모집 정보 포함)
-        Project project = projectRepository.findByIdWithRecruitment(projectId)
+        Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
 
-        if (project.isDeleted()) {
+        entityManager.refresh(project, LockModeType.PESSIMISTIC_WRITE);
+        if (!project.isPubliclyVisible()) {
             throw new CustomException(ErrorCode.PROJECT_NOT_FOUND);
         }
 

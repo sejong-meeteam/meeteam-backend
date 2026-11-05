@@ -21,39 +21,39 @@ import java.util.Optional;
 public interface ProjectRepository extends JpaRepository<Project, Long> , ProjectRepositoryCustom{
 
     @Query("SELECT p FROM Project p " +
-            "WHERE p.id = :id AND p.isDeleted = false")
+            "WHERE p.id = :id AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")
     Optional<Project> findActiveById(Long id);
 
     @Query("SELECT DISTINCT p FROM Project p " +
             "JOIN FETCH p.recruitments r " +
-            "WHERE p.id = :projectId AND p.isDeleted = false")
+            "WHERE p.id = :projectId AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")
     Optional<Project> findByIdWithRecruitment(Long projectId);
 
     @Query("SELECT DISTINCT p FROM Project p " +
             "JOIN FETCH p.creator " +
             "LEFT JOIN FETCH p.projectSkills ps " +
             "LEFT JOIN FETCH ps.skill " +
-            "WHERE p.isDeleted = false")
+            "WHERE p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")
     List<Project> findAllWithCreatorAndSkills();
 
     @Query("SELECT DISTINCT p FROM Project p " +
             "LEFT JOIN FETCH p.members pm " +
             "LEFT JOIN FETCH pm.member m " +
-            "WHERE p.id = :projectId AND p.isDeleted = false")
+            "WHERE p.id = :projectId AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")
     Optional<Project> findByIdWithMembers(Long projectId);
 
     // 필요시 추가로 skills 조회하는 별도 메서드
     @Query("SELECT p FROM Project p " +
             "JOIN FETCH p.projectSkills ps " +
             "JOIN FETCH ps.skill " +
-            "WHERE p IN :projects AND p.isDeleted = false")
+            "WHERE p IN :projects AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")
     List<Project> findProjectsWithSkills(@Param("projects") List<Project> projects);
 
     @Query("""
        SELECT new com.wardk.meeteam_backend.web.projectlike.dto.response.ProjectWithLikeDto(p, COUNT(pl))
        FROM Project p
        LEFT JOIN p.projectLikes pl
-       WHERE p.id = :projectId AND p.isDeleted = false
+       WHERE p.id = :projectId AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE
        GROUP BY p
        """)
     Optional<ProjectWithLikeDto> findProjectWithLikeCount(@Param("projectId") Long projectId);
@@ -70,7 +70,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> , Projec
 
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select p from Project p where p.id = :id AND p.isDeleted = false")
+    @Query("select p from Project p where p.id = :id AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")
     Optional<Project> findByIdForUpdate(@Param("id") Long id);
 
     /**
@@ -80,7 +80,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> , Projec
        SELECT DISTINCT p FROM Project p
        JOIN FETCH p.creator c
        LEFT JOIN FETCH p.recruitments r
-       WHERE p.id = :projectId AND p.isDeleted = false
+       WHERE p.id = :projectId AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE
        """)
     Optional<Project> findProjectDetailById(@Param("projectId") Long projectId);
 
@@ -94,7 +94,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> , Projec
        LEFT JOIN FETCH p.recruitments r
        LEFT JOIN FETCH r.jobPosition jp
        LEFT JOIN FETCH jp.jobField jf
-       WHERE p.id = :projectId AND p.isDeleted = false
+       WHERE p.id = :projectId AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE
        """)
     Optional<Project> findProjectForEdit(@Param("projectId") Long projectId);
 

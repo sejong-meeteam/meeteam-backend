@@ -44,6 +44,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Objects;
 import java.util.List;
 import java.util.UUID;
 
@@ -79,6 +82,7 @@ public class AuthService {
     private final MemberSkillRepository memberSkillRepository;
     private final MemberJobPositionRepository memberJobPositionRepository;
     private final ProjectRepository projectRepository;
+    private final com.wardk.meeteam_backend.domain.github.account.MemberGithubAccountRepository githubAccounts;
 
     /**
      * 세종대 포털 인증을 통한 로그인.
@@ -87,6 +91,7 @@ public class AuthService {
      * @param command 세종대 로그인 커맨드 (학번, 비밀번호)
      * @return 로그인 결과 (기존 회원: 토큰, 신규 회원: 코드)
      */
+    @Transactional
     public SejongLoginResult sejongLogin(SejongLoginCommand command) {
         TestAccountService testAccount = testAccountService.getIfAvailable();
         if (testAccount != null && TestAccountService.USERNAME.equals(command.studentId())) {
@@ -97,10 +102,13 @@ public class AuthService {
         // All other accounts still require actual Sejong portal authentication.
         // 세종대 포털 인증
         sejongPortalClient.authenticate(command.studentId(), command.password());
+        requireNotAdministrativelyWithdrawn(command.studentId());
 
         // 활성 회원 조회 (탈퇴하지 않은 회원만)
         return memberRepository.findByStudentIdAndDeletedAtIsNull(command.studentId())
                 .map(member -> {
+                    requireActiveLogin(member);
+                    member.recordLogin(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
                     String accessToken = jwtUtil.createAccessToken(member);
                     String refreshToken = jwtUtil.createRefreshToken(member);
                     return SejongLoginResult.existingMember(accessToken, refreshToken);
@@ -128,6 +136,13 @@ public class AuthService {
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_SEJONG_CODE));
 
         // 학번 중복 검증
+        // Lock existing identities before checking the administrative-removal marker.
+        // A current locking read cannot miss a withdrawal committed while this request waited.
+        if (memberRepository.findAllByStudentIdForUpdate(registerInfo.getStudentId()).stream()
+                .anyMatch(Member::isAdminWithdrawn)) {
+            throw new CustomException(ErrorCode.MEMBER_WITHDRAWN);
+        }
+        requireNotAdministrativelyWithdrawn(registerInfo.getStudentId());
         validateStudentIdNotDuplicated(registerInfo.getStudentId());
 
         String imageUrl = uploadFile(file);
@@ -145,10 +160,18 @@ public class AuthService {
 
         memberRepository.save(member);
 
+        member.recordLogin(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
+
         // 토큰 발급
         String accessToken = jwtUtil.createAccessToken(member);
         String refreshToken = jwtUtil.createRefreshToken(member);
         return new TokenExchangeResult(accessToken, refreshToken);
+    }
+
+    private void requireNotAdministrativelyWithdrawn(String studentId) {
+        if (memberRepository.existsByStudentIdAndAdminWithdrawnTrue(studentId)) {
+            throw new CustomException(ErrorCode.MEMBER_WITHDRAWN);
+        }
     }
 
     private void validateStudentIdNotDuplicated(String studentId) {
@@ -233,6 +256,13 @@ public class AuthService {
             Member member = memberRepository.findByEmailAndDeletedAtIsNull(email)
                     .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_WITHDRAWN));
 
+            if (member.isSuspended() || member.getId() == null
+                    || !Objects.equals(member.getId(), jwtUtil.getMemberId(refreshToken))
+                    || !Objects.equals(member.getEmail(), email)
+                    || member.getAuthVersion() != jwtUtil.getAuthVersion(refreshToken)) {
+                throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
+            }
+
             // 새로운 Access Token 및 Refresh Token 생성 (Token Rotation)
             String newAccessToken = jwtUtil.createAccessToken(member);
             String newRefreshToken = jwtUtil.createRefreshToken(member);
@@ -246,6 +276,14 @@ public class AuthService {
                 throw e;
             }
             throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+    }
+
+    static void requireActiveLogin(Member member) {
+        if (member.isSuspended()) {
+            String until = member.getSuspendedUntil() == null ? "영구" : member.getSuspendedUntil().toString();
+            throw new CustomException(ErrorCode.MEMBER_SUSPENDED,
+                    "이용 정지된 회원입니다. 정지 기한: " + until + ", 사유: " + member.getSuspendReason());
         }
     }
 
@@ -276,8 +314,9 @@ public class AuthService {
      */
     @Transactional
     public void withdraw(Long memberId) {
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        githubAccounts.deleteByMemberId(memberId);
         member.withdraw();
     }
 
@@ -331,6 +370,8 @@ public class AuthService {
         memberJobPositionRepository.deleteByMemberId(memberId);
         log.info("회원의 직무 포지션 삭제 완료 - memberId: {}", memberId);
 
+        // Account identity is removed, but GitHub repository permissions are not modified.
+        githubAccounts.deleteByMemberId(memberId);
         // 10. 회원 삭제
         memberRepository.delete(member);
         log.info("회원 하드 삭제 완료 - memberId: {}", memberId);

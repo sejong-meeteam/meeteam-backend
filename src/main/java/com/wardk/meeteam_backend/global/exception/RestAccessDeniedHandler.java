@@ -23,7 +23,9 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
                        HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
 
-        ErrorCode ec = ErrorCode.FORBIDDEN; // 전역 포맷과 동일하게
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        boolean adminRequest = path.equals("/api/v1/admin") || path.startsWith("/api/v1/admin/");
+        ErrorCode ec = adminRequest ? ErrorCode.ADMIN_FORBIDDEN : ErrorCode.FORBIDDEN;
         ErrorResponse body = ErrorResponse.getResponse(ec.getCode(), ec.getMessage());
 
         response.setStatus(ec.getStatus().value());

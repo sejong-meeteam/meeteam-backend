@@ -24,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Objects;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -133,7 +134,11 @@ public class JwtFilter extends OncePerRequestFilter {
      * 토큰을 처리하고 사용자 정보를 SecurityContext에 설정
      */
     private boolean processTokenAndSetUserDetails(String token) {
+        SecurityContextHolder.clearContext();
         try {
+            if (!JwtUtil.ACCESS_CATEGORY.equals(jwtUtil.getCategory(token))) {
+                return false;
+            }
             // 토큰 소멸 시간 검증
             if (jwtUtil.isExpired(token)) {
                 log.debug("토큰이 만료됨");
@@ -153,6 +158,13 @@ public class JwtFilter extends OncePerRequestFilter {
 
             // UserDetailsService를 통해 DB 에서 완전한 사용자 정보를 조회합니다.
             CustomSecurityUserDetails customSecurityUserDetails = customUserDetailsService.loadUserByUsername(email);
+
+            var member = customSecurityUserDetails.getMember();
+            if (memberId == null || !Objects.equals(memberId, member.getId())
+                    || !Objects.equals(email, member.getEmail()) || member.isDeleted() || member.isSuspended()
+                    || jwtUtil.getAuthVersion(token) != member.getAuthVersion()) {
+                return false;
+            }
 
             // 스프링 시큐리티 인증 토큰 생성
             Authentication authToken = new UsernamePasswordAuthenticationToken(

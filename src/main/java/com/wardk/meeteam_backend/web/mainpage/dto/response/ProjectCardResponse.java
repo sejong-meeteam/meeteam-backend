@@ -35,6 +35,12 @@ public class ProjectCardResponse implements Serializable {
 	private int likeCount; // 좋아요 수
 	private List<RecruitmentPositionResponse> recruitments; // 포지션별 모집 현황
 
+	@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS)
+	private GithubActivity githubActivity;
+
+	@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS)
+	public record GithubActivity(String activityLevel, java.time.Instant lastPushedAt) implements Serializable {}
+
 	public static ProjectCardResponse from(Project project, List<RecruitmentState> recs, boolean isLiked) {
 		int currentCount = recs.stream().mapToInt(RecruitmentState::getCurrentCount).sum();
 		int recruitmentCount = recs.stream().mapToInt(RecruitmentState::getRecruitmentCount).sum();

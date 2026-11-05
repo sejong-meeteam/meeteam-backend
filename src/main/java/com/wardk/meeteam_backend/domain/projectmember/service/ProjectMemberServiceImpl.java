@@ -14,6 +14,9 @@ import com.wardk.meeteam_backend.global.response.ErrorCode;
 import com.wardk.meeteam_backend.global.exception.CustomException;
 import com.wardk.meeteam_backend.web.projectmember.dto.request.*;
 import com.wardk.meeteam_backend.web.projectmember.dto.response.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,17 +28,22 @@ import java.util.List;
 @Transactional
 public class ProjectMemberServiceImpl implements ProjectMemberService {
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final MemberRepository memberRepository;
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
 
     @Override
     public void addCreator(Long projectId, Long memberId, JobPosition jobPosition) {
+        Member member = lockActiveMember(memberId);
         Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
-
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        entityManager.refresh(project, LockModeType.PESSIMISTIC_WRITE);
+        if (!project.isPubliclyVisible()) {
+            throw new CustomException(ErrorCode.PROJECT_NOT_FOUND);
+        }
 
         if (projectMemberRepository.existsByProjectIdAndMemberId(projectId, memberId)) {
             throw new CustomException(ErrorCode.PROJECT_MEMBER_ALREADY_EXISTS);
@@ -50,11 +58,13 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     @Override
     public void addMember(Long projectId, Long memberId, JobPosition jobPosition) {
 
-        Project project = projectRepository.findByIdWithRecruitment(projectId)
+        Member member = lockActiveMember(memberId);
+        Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
-
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        entityManager.refresh(project, LockModeType.PESSIMISTIC_WRITE);
+        if (!project.isPubliclyVisible()) {
+            throw new CustomException(ErrorCode.PROJECT_NOT_FOUND);
+        }
 
         if (projectMemberRepository.existsByProjectIdAndMemberId(projectId, memberId)) {
             throw new CustomException(ErrorCode.PROJECT_MEMBER_ALREADY_EXISTS);
@@ -95,6 +105,11 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         Project project = projectRepository.findActiveById(request.getProjectId())
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
 
+        entityManager.refresh(project, LockModeType.PESSIMISTIC_WRITE);
+        if (!project.isPubliclyVisible()) {
+            throw new CustomException(ErrorCode.PROJECT_NOT_FOUND);
+        }
+
         if (project.isCompleted()) {
             throw new CustomException(ErrorCode.PROJECT_ALREADY_COMPLETED);
         }
@@ -124,20 +139,20 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     @Override
     public WithdrawResponse withdraw(WithdrawRequest request, String requesterEmail) {
 
-        Project project = projectRepository.findByIdWithRecruitment(request.getProjectId())
+        Member requester = memberRepository.findByEmailAndDeletedAtIsNull(requesterEmail)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        Member member = lockActiveMember(requester.getId());
+        Project project = projectRepository.findActiveById(request.getProjectId())
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
 
-        if (project.isDeleted()) {
+        entityManager.refresh(project, LockModeType.PESSIMISTIC_WRITE);
+        if (!project.isPubliclyVisible()) {
             throw new CustomException(ErrorCode.PROJECT_NOT_FOUND);
         }
 
         if (project.isCompleted()) {
             throw new CustomException(ErrorCode.PROJECT_ALREADY_COMPLETED);
         }
-
-        // 소프트 삭제(deletedAt) 회원이 같은 이메일로 남아있을 수 있어 활성 회원만 조회 (NonUniqueResult 방지)
-        Member member = memberRepository.findByEmailAndDeletedAtIsNull(requesterEmail)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         if (project.getCreator().getId().equals(member.getId())) {
             throw new CustomException(ErrorCode.CREATOR_DELETE_FORBIDDEN);
@@ -163,5 +178,21 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                 project.getId(),
                 member.getId()
         );
+    }
+
+    /** The member lock must precede every project lock or new project insert. */
+    private Member lockActiveMember(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        // Refresh with the lock itself: upgrading an already-loaded stale version through a locking query
+        // may throw before its latest deleted/suspended fields can be checked.
+        entityManager.refresh(member, LockModeType.PESSIMISTIC_WRITE);
+        if (member.isDeleted()) {
+            throw new CustomException(ErrorCode.MEMBER_WITHDRAWN);
+        }
+        if (member.isSuspended()) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        return member;
     }
 }

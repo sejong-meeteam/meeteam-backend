@@ -38,7 +38,7 @@ public class ProjectQnaService {
      */
     @Transactional(readOnly = true)
     public Page<ProjectQnaResponse> getQnaList(Long projectId, Pageable pageable, Long viewerId) {
-        Project project = projectRepository.findById(projectId)
+        Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
 
         Long leaderId = project.getCreator().getId();
@@ -51,7 +51,7 @@ public class ProjectQnaService {
      * 질문 등록 (회원만 가능)
      */
     public ProjectQnaResponse createQuestion(Long projectId, Long memberId, String question, Boolean isSecret) {
-        Project project = projectRepository.findById(projectId)
+        Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
 
         Member questioner = memberRepository.findById(memberId)
@@ -70,10 +70,10 @@ public class ProjectQnaService {
      * 답변 등록 (질문자 본인 + 프로젝트 리더만 가능)
      */
     public ProjectQnaResponse addAnswer(Long projectId, Long qnaId, Long memberId, String answerContent) {
-        Project project = projectRepository.findById(projectId)
+        Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
 
-        ProjectQna qna = projectQnaRepository.findById(qnaId)
+        ProjectQna qna = projectQnaRepository.findByIdAndProjectId(qnaId, projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.QNA_NOT_FOUND));
 
         Long leaderId = project.getCreator().getId();
@@ -103,10 +103,10 @@ public class ProjectQnaService {
      * - 일반 사용자: 본인 질문만 삭제 가능 (단, 팀장 답변이 있으면 삭제 불가)
      */
     public void deleteQuestion(Long projectId, Long qnaId, Long memberId) {
-        Project project = projectRepository.findById(projectId)
+        Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
 
-        ProjectQna qna = projectQnaRepository.findById(qnaId)
+        ProjectQna qna = projectQnaRepository.findByIdAndProjectId(qnaId, projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.QNA_NOT_FOUND));
 
         Long leaderId = project.getCreator().getId();
@@ -143,13 +143,13 @@ public class ProjectQnaService {
      * - 일반 사용자: 본인 답변만 삭제 가능
      */
     public void deleteAnswer(Long projectId, Long qnaId, Long answerId, Long memberId) {
-        Project project = projectRepository.findById(projectId)
+        Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
 
-        ProjectQna qna = projectQnaRepository.findById(qnaId)
+        ProjectQna qna = projectQnaRepository.findByIdAndProjectId(qnaId, projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.QNA_NOT_FOUND));
 
-        QnaAnswer answer = qnaAnswerRepository.findById(answerId)
+        QnaAnswer answer = qnaAnswerRepository.findByIdAndQnaId(answerId, qnaId)
                 .orElseThrow(() -> new CustomException(ErrorCode.QNA_ANSWER_NOT_FOUND));
 
         Long leaderId = project.getCreator().getId();

@@ -20,6 +20,10 @@ public class ProjectListResponse {
     private List<String> skills;
     private LocalDate startDate;
 
+    @lombok.Setter
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS)
+    private com.wardk.meeteam_backend.web.mainpage.dto.response.ProjectCardResponse.GithubActivity githubActivity;
+
     public static ProjectListResponse responseDto(Project project) {
         return ProjectListResponse.builder()
                 .projectId(project.getId())

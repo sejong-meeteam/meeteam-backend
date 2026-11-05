@@ -67,7 +67,8 @@ public record MemberCardResponse(
                 member.getStoreFileName(),
                 jobFieldName,
                 member.getRealName(),
-                member.getProjectMembers().size(),
+                (int) member.getProjectMembers().stream()
+                .filter(pm -> pm.getProject() != null && pm.getProject().isPubliclyVisible()).count(),
                 techStacks
         );
     }

@@ -1,5 +1,7 @@
 package com.wardk.meeteam_backend.web.member.dto.response;
 
+import com.wardk.meeteam_backend.domain.member.entity.UserRole;
+
 import com.wardk.meeteam_backend.domain.job.entity.JobPosition;
 import com.wardk.meeteam_backend.domain.member.entity.Gender;
 import com.wardk.meeteam_backend.domain.member.entity.Member;
@@ -21,6 +23,9 @@ public class MemberProfileResponse {
 
     private String name;
     private Long memberId;
+
+    @Schema(description = "서비스 권한", allowableValues = {"USER", "ADMIN"})
+    private UserRole role;
 
     @Schema(description = "생년월일", example = "1998-03-15")
     private LocalDate birthDate;
@@ -58,6 +63,7 @@ public class MemberProfileResponse {
 
     public MemberProfileResponse(Member member, Long memberId) {
         this.memberId = memberId;
+        this.role = member.getRole();
         this.name = member.getRealName();
         this.birthDate = member.getBirth();
         this.gender = member.getGender();
@@ -78,7 +84,8 @@ public class MemberProfileResponse {
                 .map(memberTechStack -> memberTechStack.getTechStack().getName())
                 .toList();
         this.isParticipating = member.getIsParticipating();
-        this.projectCount = member.getProjectMembers().size();
+        this.projectCount = (int) member.getProjectMembers().stream()
+                .filter(pm -> pm.getProject() != null && pm.getProject().isPubliclyVisible()).count();
         this.introduce = member.getIntroduction();
     }
 }

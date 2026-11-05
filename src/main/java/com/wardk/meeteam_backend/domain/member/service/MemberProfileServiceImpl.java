@@ -71,7 +71,7 @@ public class MemberProfileServiceImpl implements MemberProfileService {
         // 참여 프로젝트 -> ProjectCardResponse 변환 (배치 쿼리)
         List<Project> projects = member.getProjectMembers().stream()
             .map(pm -> pm.getProject())
-            .filter(p -> !p.isDeleted())
+            .filter(Project::isPubliclyVisible)
             .toList();
 
         if (!projects.isEmpty()) {
@@ -105,12 +105,13 @@ public class MemberProfileServiceImpl implements MemberProfileService {
     @Transactional(readOnly = true)
     public MemberDetailResponse getMemberDetail(Long memberId) {
         Member member = memberRepository.findById(memberId)
+                .filter(m -> !m.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         // 참여 프로젝트 -> ProjectCardResponse 변환 (배치 쿼리)
         List<Project> projects = member.getProjectMembers().stream()
                 .map(pm -> pm.getProject())
-                .filter(p -> !p.isDeleted())
+                .filter(Project::isPubliclyVisible)
                 .toList();
 
         List<ProjectCardResponse> projectCards;
