@@ -117,7 +117,9 @@ public class AdminMemberActionService {
     }
 
     private void rejectReservedIdentity(Member target) {
-        if (TestAccountService.EMAIL.equals(target.getEmail())) throw new CustomException(ErrorCode.ADMIN_INVALID_STATE);
+        if (TestAccountService.EMAIL.equals(target.getEmail()) || target.isLocalAdminAccount()) {
+            throw new CustomException(ErrorCode.ADMIN_INVALID_STATE);
+        }
     }
 
     private void preserveLastAdmin(Member target, AdminActionGuard.Actor actor) {

@@ -13,7 +13,7 @@ BASE=${MEETEAM_DEPLOY_DIR:-/home/ubuntu/meeteam}
 grep -q '^TEST_ACCOUNT_ENABLED=true$' "$BASE/.env.test-account" || { echo 'Test login must remain enabled for this test-server deployment'; exit 1; }
 [[ -f "$PAYLOAD/SHA256SUMS" ]] || { echo 'Artifact checksum manifest missing'; exit 1; }
 (cd "$PAYLOAD" && sha256sum -c SHA256SUMS)
-for required in Dockerfile custom.java.security; do
+for required in Dockerfile custom.java.security scripts/setup-admin-account.sh; do
   [[ -s "$PAYLOAD/$required" ]] || { echo "Missing artifact file: $required"; exit 1; }
 done
 command -v docker >/dev/null
@@ -105,6 +105,10 @@ override="$release/app.yml"
   if [[ -s "$BASE/.env.test-account" ]]; then
     printf '    env_file:\n      - %s/.env.test-account\n' "$BASE"
   fi
+  if [[ -s "$BASE/.env.admin-account" ]]; then
+    [[ ! -L "$BASE/.env.admin-account" ]] || { echo 'Unsafe administrator settings file'; exit 1; }
+    printf '      - %s/.env.admin-account\n' "$BASE"
+  fi
   printf '    environment:\n'
   printf '      SPRING_PROFILES_ACTIVE: test\n'
   printf '      SPRING_JPA_HIBERNATE_DDL_AUTO: validate\n'
@@ -169,6 +173,18 @@ sys.exit(0 if profile.get('email') == 'meeteam-test@example.invalid' else 1)
 PY
   echo 'Existing test login and authenticated profile verified.'
 fi
+# Install only the interactive operator tool, never credentials. It remains inert until the owner runs it.
+[[ ! -L "$BASE/tools" ]] || { echo 'Unsafe tools directory'; fail_deployment; }
+if [[ ! -d "$BASE/tools" ]]; then mkdir -m 700 "$BASE/tools"; fi
+if [[ -e "$BASE/tools/setup-admin-account.sh" || -L "$BASE/tools/setup-admin-account.sh" ]]; then
+  [[ -f "$BASE/tools/setup-admin-account.sh" && ! -L "$BASE/tools/setup-admin-account.sh" ]] || { echo 'Unsafe operator tool destination'; fail_deployment; }
+  cp -p "$BASE/tools/setup-admin-account.sh" "$release/setup-admin-account.previous.sh"
+fi
+tool_tmp=$(mktemp "$BASE/tools/.setup-admin.XXXXXX")
+cp "$PAYLOAD/scripts/setup-admin-account.sh" "$tool_tmp"
+chmod 700 "$tool_tmp"
+mv -f "$tool_tmp" "$BASE/tools/setup-admin-account.sh"
+echo 'Interactive administrator password setup tool installed; no password was collected.'
 printf '%s\n' "$SHA" > "$BASE/.deploy/current-revision"
 changed=false
 trap - ERR INT TERM

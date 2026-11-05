@@ -214,6 +214,22 @@ public class Member extends BaseEntity {
                 .build();
     }
 
+    /** Operator identity, never produced by public student registration or the test-account factory. */
+    public static Member createForLocalAdmin(String email, String encodedPassword) {
+        return Member.builder()
+                .email(email)
+                .realName("운영 관리자")
+                .password(encodedPassword)
+                .role(UserRole.ADMIN)
+                .provider("local-admin")
+                .isParticipating(false)
+                .build();
+    }
+
+    public boolean isLocalAdminAccount() {
+        return "local-admin".equals(provider);
+    }
+
     public void addJobPosition(JobPosition jobPosition) {
         jobPositions.add(new MemberJobPosition(this, jobPosition));
     }

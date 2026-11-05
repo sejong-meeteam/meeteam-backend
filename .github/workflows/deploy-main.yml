@@ -34,7 +34,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Build deployable JAR (skip tests)
+      - name: Offline deployment and operator setup checks (no real services)
+        run: |
+          node scripts/tests/deploy-main.test.cjs
+          node scripts/tests/setup-admin-account.test.cjs
+      - name: Build deployable JAR (skip Java tests)
         run: bash ./gradlew --no-daemon --max-workers=2 bootJar -x test
       - name: Package only application files (never env files)
         shell: bash
@@ -43,10 +47,10 @@ jobs:
           mkdir -p payload/build/libs payload/scripts
           cp build/libs/*SNAPSHOT.jar payload/build/libs/
           cp Dockerfile custom.java.security payload/
-          cp scripts/deploy-main.sh payload/scripts/
+          cp scripts/deploy-main.sh scripts/setup-admin-account.sh payload/scripts/
           printf '%s\n' "$GITHUB_SHA" > payload/REVISION
           printf '.git\n.env*\nbackups/\n' > payload/.dockerignore
-          (cd payload && sha256sum Dockerfile custom.java.security REVISION build/libs/*SNAPSHOT.jar scripts/deploy-main.sh > SHA256SUMS)
+          (cd payload && sha256sum Dockerfile custom.java.security REVISION build/libs/*SNAPSHOT.jar scripts/deploy-main.sh scripts/setup-admin-account.sh > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
           name: app-${{ github.sha }}

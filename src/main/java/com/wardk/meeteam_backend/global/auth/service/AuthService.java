@@ -51,8 +51,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 세종대 포털 인증 기반 인증 서비스.
- * OAuth2/자체 로그인은 제거되었으며, 세종대 포털 로그인만 지원합니다.
+ * Student portal authentication with explicitly configured, isolated operator/test identities.
+ * All identities use the existing login response, cookies and JWT validation.
  */
 @Service
 @RequiredArgsConstructor
@@ -71,6 +71,9 @@ public class AuthService {
     private final SejongPortalClient sejongPortalClient;
     // Present only with an explicitly enabled, non-production test profile.
     private final ObjectProvider<TestAccountService> testAccountService;
+    // Optional: absent by default. Keep the existing constructor contract for ordinary authentication.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AdminAccountService adminAccountService;
 
     // CASCADE 삭제용 Repository
     private final QnaAnswerRepository qnaAnswerRepository;
@@ -93,13 +96,17 @@ public class AuthService {
      */
     @Transactional
     public SejongLoginResult sejongLogin(SejongLoginCommand command) {
+        if (adminAccountService != null && adminAccountService.matchesUsername(command.studentId())) {
+            TokenExchangeResult tokens = adminAccountService.login(command.studentId(), command.password());
+            return SejongLoginResult.existingMember(tokens.getAccessToken(), tokens.getRefreshToken());
+        }
         TestAccountService testAccount = testAccountService.getIfAvailable();
         if (testAccount != null && TestAccountService.USERNAME.equals(command.studentId())) {
             TokenExchangeResult tokens = testAccount.login(command.studentId(), command.password());
             return SejongLoginResult.existingMember(tokens.getAccessToken(), tokens.getRefreshToken());
         }
 
-        // All other accounts still require actual Sejong portal authentication.
+        // Every other identity still requires actual Sejong portal authentication; no fallback after local failure.
         // 세종대 포털 인증
         sejongPortalClient.authenticate(command.studentId(), command.password());
         requireNotAdministrativelyWithdrawn(command.studentId());
@@ -134,6 +141,11 @@ public class AuthService {
         // 코드로 학번 조회
         SejongRegisterInfo registerInfo = sejongCodeRepository.consumeRegisterInfo(command.code())
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_SEJONG_CODE));
+
+        // A stale or forged registration code must never create a student at the reserved operator login ID.
+        if (adminAccountService != null && adminAccountService.matchesUsername(registerInfo.getStudentId())) {
+            throw new CustomException(ErrorCode.INVALID_SEJONG_CODE);
+        }
 
         // 학번 중복 검증
         // Lock existing identities before checking the administrative-removal marker.
@@ -218,6 +230,7 @@ public class AuthService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
+        if (member.isLocalAdminAccount()) throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
         member.setIntroduction(introduction.getIntroduce());
 
         return new RegisterResponse(member.getRealName(), member.getId());
@@ -256,7 +269,8 @@ public class AuthService {
             Member member = memberRepository.findByEmailAndDeletedAtIsNull(email)
                     .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_WITHDRAWN));
 
-            if (member.isSuspended() || member.getId() == null
+            if ((member.isLocalAdminAccount() && adminAccountService == null)
+                    || member.isSuspended() || member.getId() == null
                     || !Objects.equals(member.getId(), jwtUtil.getMemberId(refreshToken))
                     || !Objects.equals(member.getEmail(), email)
                     || member.getAuthVersion() != jwtUtil.getAuthVersion(refreshToken)) {
@@ -316,6 +330,7 @@ public class AuthService {
     public void withdraw(Long memberId) {
         Member member = memberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        if (member.isLocalAdminAccount()) throw new CustomException(ErrorCode.ADMIN_INVALID_STATE);
         githubAccounts.deleteByMemberId(memberId);
         member.withdraw();
     }
@@ -328,6 +343,8 @@ public class AuthService {
     public void deleteMember(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+
+        if (member.isLocalAdminAccount()) throw new CustomException(ErrorCode.ADMIN_INVALID_STATE);
 
         // 1. 회원이 작성한 Q&A 답변 삭제
         qnaAnswerRepository.deleteByWriterId(memberId);

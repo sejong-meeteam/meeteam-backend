@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 public class CustomUserDetailsService implements UserDetailsService {
 
   private final MemberRepository memberRepository;
+  @org.springframework.beans.factory.annotation.Value("${admin-account.enabled:false}")
+  private boolean adminAccountEnabled;
 
   @Override
   public CustomSecurityUserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -21,6 +23,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     Member member = memberRepository.findByEmailAndDeletedAtIsNull(email)
         .orElseThrow(() -> new UsernameNotFoundException("회원을 찾을 수 없거나 탈퇴한 회원입니다: " + email));
 
+    if (member.isLocalAdminAccount() && !adminAccountEnabled) {
+      throw new UsernameNotFoundException("관리자 전용 로그인이 비활성화되어 있습니다.");
+    }
     if (member.isSuspended()) {
       throw new org.springframework.security.authentication.DisabledException("이용 정지된 회원입니다.");
     }

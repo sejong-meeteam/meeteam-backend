@@ -111,6 +111,7 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
     private BooleanExpression publiclyVisibleMember() {
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
         return member.deletedAt.isNull()
+                .and(member.provider.isNull().or(member.provider.ne("local-admin")))
                 .and(member.role.ne(UserRole.ADMIN))
                 .and(member.suspended.isFalse().or(member.suspendedUntil.loe(now)));
     }

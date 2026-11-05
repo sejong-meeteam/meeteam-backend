@@ -83,6 +83,7 @@ if (command === 'docker') {
       assert.match(override, /SPRING_SQL_INIT_MODE: never/);
       assert.match(override, /SPRING_FLYWAY_ENABLED: "false"/);
       assert.ok(override.includes(base + '/.env.test-account'));
+      if (fs.existsSync(base + '/.env.admin-account')) assert.ok(override.includes(base + '/.env.admin-account'));
     } else if (args[i] === 'up') {
       assert.deepEqual(args.slice(i), ['up', '-d', '--no-deps', '--pull', 'never', 'meeteam-test']);
       const rollback = override.includes('meeteam-server:rollback-');
@@ -148,6 +149,7 @@ function runCase(name, setup, expectation) {
   const root = fs.mkdtempSync(`${os.tmpdir()}/meeteam-deploy-offline-`);
   try {
     for (const dir of ['bin', 'base', 'payload']) fs.mkdirSync(`${root}/${dir}`);
+    fs.mkdirSync(`${root}/payload/scripts`);
     const base = `${root}/base`;
     const payload = `${root}/payload`;
     const privateFiles = {
@@ -159,7 +161,8 @@ function runCase(name, setup, expectation) {
     for (const [file, content] of Object.entries(privateFiles)) fs.writeFileSync(`${base}/${file}`, content);
     const artifacts = {
       REVISION: `${sha}\n`, Dockerfile: 'FROM scratch\n',
-      'custom.java.security': 'networkaddress.cache.ttl=60\n', 'app.jar': 'offline-fake-jar\n'
+      'custom.java.security': 'networkaddress.cache.ttl=60\n', 'app.jar': 'offline-fake-jar\n',
+      'scripts/setup-admin-account.sh': '#!/usr/bin/env bash\necho offline-operator-tool\n'
     };
     for (const [file, content] of Object.entries(artifacts)) fs.writeFileSync(`${payload}/${file}`, content);
     fs.writeFileSync(`${payload}/SHA256SUMS`, Object.entries(artifacts).map(([file, content]) => `${hash(content)}  ${file}\n`).join(''));
@@ -173,6 +176,7 @@ function runCase(name, setup, expectation) {
       fs.writeFileSync(`${root}/bin/${command}`, `#!/bin/bash\nexec ${quote(process.execPath)} ${quote(root + '/mock.cjs')} ${quote(command)} "$@"\n`, {mode: 0o700});
     }
     if (setup) setup({root, base, payload});
+    const adminBefore = fs.existsSync(`${base}/.env.admin-account`) ? fs.readFileSync(`${base}/.env.admin-account`, 'utf8') : null;
     const result = spawnSync(bash, [script, payload, sha, 'offline-run'], {
       env: {
         PATH: `${root}/bin:/usr/bin:/bin`, HOME: root, TMPDIR: root,
@@ -196,6 +200,8 @@ function runCase(name, setup, expectation) {
       assert.equal(ups.length, 1);
       assert.match(result.stdout, /DEPLOY SUCCESS/);
       assert.match(result.stdout, /Existing test login and authenticated profile verified/);
+      assert.equal(fs.readFileSync(`${base}/tools/setup-admin-account.sh`, 'utf8'), artifacts['scripts/setup-admin-account.sh']);
+      assert.equal(fs.statSync(`${base}/tools/setup-admin-account.sh`).mode & 0o777, 0o700);
       const backups = fs.readdirSync(`${base}/backups`);
       assert.equal(backups.length, 1);
       assert.ok(fs.statSync(`${base}/backups/${backups[0]}`).size > 0);
@@ -220,6 +226,8 @@ function runCase(name, setup, expectation) {
     for (const [file, content] of Object.entries(privateFiles)) {
       if (fs.existsSync(`${base}/${file}`)) assert.equal(fs.readFileSync(`${base}/${file}`, 'utf8'), content);
     }
+    if (adminBefore !== null) assert.equal(fs.readFileSync(`${base}/.env.admin-account`, 'utf8'), adminBefore);
+    else assert.ok(!fs.existsSync(`${base}/.env.admin-account`));
     const indexOf = predicate => calls.findIndex(predicate);
     if (ups.length) {
       const backupIndex = indexOf(c => c.command === 'docker' && c.args[0] === 'exec');
@@ -234,6 +242,13 @@ function runCase(name, setup, expectation) {
 
 const cases = [
   ['success', null, 'success'],
+  ['admin-settings-preserved', ({base}) => fs.writeFileSync(`${base}/.env.admin-account`, 'ADMIN_ACCOUNT_ENABLED=false\nADMIN_ACCOUNT_USERNAME=99990002\n'), 'success'],
+  ['unsafe-tools-symlink', ({base,root}) => fs.symlinkSync(root + '/unrelated-tools', base + '/tools'), 'rollback'],
+  ['missing-operator-tool', ({payload}) => {
+    fs.unlinkSync(`${payload}/scripts/setup-admin-account.sh`);
+    const sums=fs.readFileSync(`${payload}/SHA256SUMS`,'utf8').split('\n').filter(line=>!line.endsWith('scripts/setup-admin-account.sh')).join('\n');
+    fs.writeFileSync(`${payload}/SHA256SUMS`,sums);
+  }, 'early'],
   ['build-fail', null, 'untouched'],
   ['backup-fail', null, 'untouched'],
   ['backup-empty', null, 'untouched'],

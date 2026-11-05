@@ -105,7 +105,7 @@ public class MemberProfileServiceImpl implements MemberProfileService {
     @Transactional(readOnly = true)
     public MemberDetailResponse getMemberDetail(Long memberId) {
         Member member = memberRepository.findById(memberId)
-                .filter(m -> !m.isDeleted())
+                .filter(m -> !m.isDeleted() && !m.isLocalAdminAccount())
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         // 참여 프로젝트 -> ProjectCardResponse 변환 (배치 쿼리)

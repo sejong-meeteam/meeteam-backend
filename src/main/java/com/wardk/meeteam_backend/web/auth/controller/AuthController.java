@@ -48,7 +48,7 @@ public class AuthController {
             HttpServletResponse response,
             @RequestBody @Valid SejongLoginRequest request
     ) {
-        log.info("세종대 포털 로그인 요청 - studentId: {}", request.getStudentId());
+        log.info("로그인 요청");
 
         SejongLoginResult result = authService.sejongLogin(
                 new SejongLoginCommand(request.getStudentId(), request.getPassword())
