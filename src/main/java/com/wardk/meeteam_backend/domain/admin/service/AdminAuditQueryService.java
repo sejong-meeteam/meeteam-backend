@@ -1,8 +1,13 @@
-package com.wardk.meeteam_backend.domain.admin;
+package com.wardk.meeteam_backend.domain.admin.service;
+
+import com.wardk.meeteam_backend.domain.admin.dto.AdminQueryOptions;
+import com.wardk.meeteam_backend.domain.admin.entity.AdminAuditLog;
+import com.wardk.meeteam_backend.domain.admin.entity.AuditAction;
+import com.wardk.meeteam_backend.domain.admin.entity.AuditTargetType;
 
 import com.wardk.meeteam_backend.global.exception.CustomException;
 import com.wardk.meeteam_backend.global.response.ErrorCode;
-import com.wardk.meeteam_backend.web.admin.AdminResponses;
+import com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

@@ -1,7 +1,9 @@
-package com.wardk.meeteam_backend.web.admin;
+package com.wardk.meeteam_backend.web.admin.controller;
 
-import com.wardk.meeteam_backend.domain.admin.AdminAuditQueryService;
-import com.wardk.meeteam_backend.domain.admin.AdminQueryOptions;
+import com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses;
+
+import com.wardk.meeteam_backend.domain.admin.service.AdminAuditQueryService;
+import com.wardk.meeteam_backend.domain.admin.dto.AdminQueryOptions;
 import com.wardk.meeteam_backend.global.response.SuccessResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

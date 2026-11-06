@@ -1,4 +1,4 @@
-package com.wardk.meeteam_backend.web.admin;
+package com.wardk.meeteam_backend.web.admin.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;

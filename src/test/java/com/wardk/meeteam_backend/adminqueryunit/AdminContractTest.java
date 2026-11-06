@@ -1,13 +1,16 @@
 package com.wardk.meeteam_backend.adminqueryunit;
 
+import com.wardk.meeteam_backend.domain.admin.dto.AdminQueryOptions;
+import com.wardk.meeteam_backend.domain.admin.mapper.AdminResponseMapper;
+import com.wardk.meeteam_backend.domain.admin.repository.AdminQueryRepository;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.wardk.meeteam_backend.domain.admin.*;
 import com.wardk.meeteam_backend.domain.file.service.S3ImageUrlResolver;
 import com.wardk.meeteam_backend.domain.member.entity.Member;
 import com.wardk.meeteam_backend.global.exception.CustomException;
 import com.wardk.meeteam_backend.global.response.ErrorCode;
-import com.wardk.meeteam_backend.web.admin.AdminResponses.*;
+import com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.*;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import static org.assertj.core.api.Assertions.*;

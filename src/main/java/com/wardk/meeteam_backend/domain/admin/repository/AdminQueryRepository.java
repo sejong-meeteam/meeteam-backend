@@ -1,4 +1,6 @@
-package com.wardk.meeteam_backend.domain.admin;
+package com.wardk.meeteam_backend.domain.admin.repository;
+
+import com.wardk.meeteam_backend.domain.admin.dto.AdminQueryOptions;
 
 import com.wardk.meeteam_backend.domain.application.entity.*;
 import com.wardk.meeteam_backend.domain.job.entity.JobFieldCode;

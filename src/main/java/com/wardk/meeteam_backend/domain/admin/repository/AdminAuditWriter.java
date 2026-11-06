@@ -1,4 +1,6 @@
-package com.wardk.meeteam_backend.domain.admin;
+package com.wardk.meeteam_backend.domain.admin.repository;
+
+import com.wardk.meeteam_backend.domain.admin.entity.AdminAuditLog;
 
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;

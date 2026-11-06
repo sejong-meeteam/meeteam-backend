@@ -1,4 +1,4 @@
-package com.wardk.meeteam_backend.domain.admin;
+package com.wardk.meeteam_backend.domain.admin.repository;
 
 import com.wardk.meeteam_backend.domain.application.entity.ApplicationStatus;
 import com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility;

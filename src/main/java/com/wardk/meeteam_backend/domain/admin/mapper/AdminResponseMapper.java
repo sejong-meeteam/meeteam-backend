@@ -1,10 +1,12 @@
-package com.wardk.meeteam_backend.domain.admin;
+package com.wardk.meeteam_backend.domain.admin.mapper;
+
+import com.wardk.meeteam_backend.domain.admin.repository.AdminQueryRepository;
 
 import com.wardk.meeteam_backend.domain.file.service.S3ImageUrlResolver;
 import com.wardk.meeteam_backend.domain.job.entity.JobPosition;
 import com.wardk.meeteam_backend.domain.member.entity.Member;
 import com.wardk.meeteam_backend.domain.project.entity.Project;
-import com.wardk.meeteam_backend.web.admin.AdminResponses.*;
+import com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -40,8 +42,8 @@ public class AdminResponseMapper {
                 p.getCategoryCode(), p.getPlatformName(), row.currentMembers(), row.targetMembers(),
                 p.getRecruitmentStatus().name(), visibility(p), row.pendingCount(), p.getEndDate(), p.getCreatedAt());
     }
-    public com.wardk.meeteam_backend.web.admin.AdminResponses.ProjectMember projectMember(Member m, String position, boolean leader) {
-        return new com.wardk.meeteam_backend.web.admin.AdminResponses.ProjectMember(m.getId(), m.getRealName(),
+    public com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.ProjectMember projectMember(Member m, String position, boolean leader) {
+        return new com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.ProjectMember(m.getId(), m.getRealName(),
                 images.resolve(m.getStoreFileName()), position, leader);
     }
     public static String maskStudentId(String id) {

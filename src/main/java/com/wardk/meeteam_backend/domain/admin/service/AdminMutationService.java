@@ -1,4 +1,13 @@
-package com.wardk.meeteam_backend.domain.admin;
+package com.wardk.meeteam_backend.domain.admin.service;
+
+import com.wardk.meeteam_backend.domain.admin.entity.AdminAuditLog;
+import com.wardk.meeteam_backend.domain.admin.entity.AuditAction;
+import com.wardk.meeteam_backend.domain.admin.entity.AuditTargetType;
+import com.wardk.meeteam_backend.domain.admin.mapper.AdminResponseMapper;
+import com.wardk.meeteam_backend.domain.admin.policy.AdminActionGuard;
+import com.wardk.meeteam_backend.domain.admin.policy.AdminReason;
+import com.wardk.meeteam_backend.domain.admin.repository.AdminAuditWriter;
+import com.wardk.meeteam_backend.domain.admin.repository.AdminQueryRepository;
 
 import com.wardk.meeteam_backend.domain.member.entity.Member;
 import com.wardk.meeteam_backend.domain.member.entity.UserRole;
@@ -6,8 +15,8 @@ import com.wardk.meeteam_backend.domain.project.entity.Project;
 import com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility;
 import com.wardk.meeteam_backend.global.exception.CustomException;
 import com.wardk.meeteam_backend.global.response.ErrorCode;
-import com.wardk.meeteam_backend.web.admin.AdminResponses.MemberSummary;
-import com.wardk.meeteam_backend.web.admin.AdminResponses.ProjectSummary;
+import com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.MemberSummary;
+import com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.ProjectSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -37,19 +37,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({SecurityConfig.class, SecurityUrls.class, RestAccessDeniedHandler.class,
         RestAuthenticationEntryPoint.class, AdminSecurityContractTest.CorsConfig.class,
         AdminSecurityContractTest.ProbeController.class,
-        com.wardk.meeteam_backend.web.admin.AdminQueryController.class,
-        com.wardk.meeteam_backend.web.admin.AdminMutationController.class,
-        com.wardk.meeteam_backend.web.admin.AdminAuditController.class,
-        com.wardk.meeteam_backend.web.admin.AdminRequestExceptionHandler.class})
+        com.wardk.meeteam_backend.web.admin.controller.AdminQueryController.class,
+        com.wardk.meeteam_backend.web.admin.controller.AdminMutationController.class,
+        com.wardk.meeteam_backend.web.admin.controller.AdminAuditController.class,
+        com.wardk.meeteam_backend.web.admin.exception.AdminRequestExceptionHandler.class})
 class AdminSecurityContractTest {
     @Autowired MockMvc mvc;
     @MockBean com.wardk.meeteam_backend.domain.file.service.S3ImageUrlResolver images;
-    @MockBean com.wardk.meeteam_backend.domain.admin.AdminQueryService adminQueries;
-    @MockBean com.wardk.meeteam_backend.domain.admin.AdminMutationService mutations;
-    @MockBean com.wardk.meeteam_backend.domain.admin.AdminAuditQueryService auditQueries;
-    @MockBean com.wardk.meeteam_backend.domain.admin.AdminMemberActionService memberActions;
-    @MockBean com.wardk.meeteam_backend.domain.admin.AdminProjectActionService projectActions;
-    @MockBean com.wardk.meeteam_backend.domain.admin.AdminDashboardService dashboard;
+    @MockBean com.wardk.meeteam_backend.domain.admin.service.AdminQueryService adminQueries;
+    @MockBean com.wardk.meeteam_backend.domain.admin.service.AdminMutationService mutations;
+    @MockBean com.wardk.meeteam_backend.domain.admin.service.AdminAuditQueryService auditQueries;
+    @MockBean com.wardk.meeteam_backend.domain.admin.service.AdminMemberActionService memberActions;
+    @MockBean com.wardk.meeteam_backend.domain.admin.service.AdminProjectActionService projectActions;
+    @MockBean com.wardk.meeteam_backend.domain.admin.service.AdminDashboardService dashboard;
     @MockBean JwtUtil jwt;
     @MockBean CustomUserDetailsService users;
     @MockBean TokenBlacklistRepository blacklist;
@@ -146,7 +146,7 @@ class AdminSecurityContractTest {
     void adminCanReadAnEmptyMemberPageWithContractMetadata() throws Exception {
         authenticate(UserRole.ADMIN);
         when(adminQueries.members(any(), isNull(), isNull(), isNull())).thenReturn(
-                com.wardk.meeteam_backend.web.admin.AdminResponses.Page.of(List.of(), 0, 10, 0));
+                com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.Page.of(List.of(), 0, 10, 0));
         mvc.perform(get("/api/v1/admin/members").header("Authorization", "Bearer test-access"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("COMMON200"))
                 .andExpect(jsonPath("$.result.content").isArray())
@@ -293,8 +293,8 @@ class AdminSecurityContractTest {
     @Test
     void dashboardResponseHasExactlyTheFrontendTopLevelAndStatsFields() throws Exception {
         authenticate(UserRole.ADMIN);
-        when(dashboard.dashboard()).thenReturn(new com.wardk.meeteam_backend.web.admin.AdminResponses.Dashboard(
-                new com.wardk.meeteam_backend.web.admin.AdminResponses.DashboardStats(1,2,3,4,5,6,7), List.of(), List.of(), List.of()));
+        when(dashboard.dashboard()).thenReturn(new com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.Dashboard(
+                new com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.DashboardStats(1,2,3,4,5,6,7), List.of(), List.of(), List.of()));
         var result = mvc.perform(get("/api/v1/admin/dashboard").header("Authorization", "Bearer test-access"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("COMMON200"))
                 .andExpect(jsonPath("$.result.stats.totalMembers").value(1))
@@ -315,10 +315,10 @@ class AdminSecurityContractTest {
     void encodedDashboardSortLinkIsDecodedByMvcBeforeRepositoryComparison() throws Exception {
         authenticate(UserRole.ADMIN);
         when(adminQueries.projects(any(), isNull(), isNull(), isNull())).thenReturn(
-                com.wardk.meeteam_backend.web.admin.AdminResponses.Page.of(List.of(),0,10,0));
+                com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.Page.of(List.of(),0,10,0));
         mvc.perform(get(java.net.URI.create("/api/v1/admin/projects?sort=pendingApplicationCount%2Cdesc"))
                 .header("Authorization", "Bearer test-access")).andExpect(status().isOk());
-        var options = org.mockito.ArgumentCaptor.forClass(com.wardk.meeteam_backend.domain.admin.AdminQueryOptions.class);
+        var options = org.mockito.ArgumentCaptor.forClass(com.wardk.meeteam_backend.domain.admin.dto.AdminQueryOptions.class);
         verify(adminQueries).projects(options.capture(), isNull(), isNull(), isNull());
         org.junit.jupiter.api.Assertions.assertEquals("pendingApplicationCount,desc", options.getValue().sort());
     }

@@ -1,21 +1,23 @@
-package com.wardk.meeteam_backend.web.admin;
+package com.wardk.meeteam_backend.web.admin.controller;
+
+import com.wardk.meeteam_backend.web.admin.dto.request.AdminMutationRequests;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.wardk.meeteam_backend.domain.admin.AdminMutationService;
+import com.wardk.meeteam_backend.domain.admin.service.AdminMutationService;
 import com.wardk.meeteam_backend.global.response.SuccessResponse;
 import com.wardk.meeteam_backend.web.auth.dto.CustomSecurityUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import static com.wardk.meeteam_backend.web.admin.AdminResponses.*;
+import static com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.*;
 
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
 public class AdminMutationController {
     private final AdminMutationService service;
-    private final com.wardk.meeteam_backend.domain.admin.AdminMemberActionService memberActions;
-    private final com.wardk.meeteam_backend.domain.admin.AdminProjectActionService projectActions;
+    private final com.wardk.meeteam_backend.domain.admin.service.AdminMemberActionService memberActions;
+    private final com.wardk.meeteam_backend.domain.admin.service.AdminProjectActionService projectActions;
     @PostMapping("/members/{memberId}/suspend")
     public SuccessResponse<MemberSummary> suspend(@PathVariable long memberId, @RequestBody JsonNode body,
                                                   @AuthenticationPrincipal CustomSecurityUserDetails user) {

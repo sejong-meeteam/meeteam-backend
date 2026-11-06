@@ -30,8 +30,8 @@ public class GithubLifecycleAspect {
             "execution(* com.wardk.meeteam_backend.domain.projectmember.service.ProjectMemberServiceImpl.withdraw(..)) || " +
             "execution(* com.wardk.meeteam_backend.domain.project.service.ProjectManagementServiceImpl.expelMember(..)) || " +
             "execution(* com.wardk.meeteam_backend.domain.project.service.ProjectCommandServiceImpl.delete(..)) || " +
-            "execution(* com.wardk.meeteam_backend.domain.admin.AdminProjectActionService.expel(..)) || " +
-            "execution(* com.wardk.meeteam_backend.domain.admin.AdminMemberActionService.withdraw(..)) || " +
+            "execution(* com.wardk.meeteam_backend.domain.admin.service.AdminProjectActionService.expel(..)) || " +
+            "execution(* com.wardk.meeteam_backend.domain.admin.service.AdminMemberActionService.withdraw(..)) || " +
             "execution(* com.wardk.meeteam_backend.global.auth.service.AuthService.withdraw(..)) || " +
             "execution(* com.wardk.meeteam_backend.global.auth.service.AuthService.deleteMember(..)) || " +
             "execution(* com.wardk.meeteam_backend.domain.github.account.GithubAccountService.connect(..))")

@@ -1,4 +1,4 @@
-package com.wardk.meeteam_backend.domain.admin;
+package com.wardk.meeteam_backend.domain.admin.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;

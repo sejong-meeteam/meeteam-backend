@@ -1,4 +1,4 @@
-package com.wardk.meeteam_backend.web.admin;
+package com.wardk.meeteam_backend.web.admin.dto.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility;
@@ -18,7 +18,7 @@ public final class AdminMutationRequests {
         object(body);
         JsonNode value = body.get("reason");
         if (value == null || !value.isTextual()) throw invalid("사유를 5자 이상 입력해 주세요.");
-        return com.wardk.meeteam_backend.domain.admin.AdminReason.validate(value.textValue());
+        return com.wardk.meeteam_backend.domain.admin.policy.AdminReason.validate(value.textValue());
     }
     public static Suspension suspension(JsonNode body) {
         object(body);

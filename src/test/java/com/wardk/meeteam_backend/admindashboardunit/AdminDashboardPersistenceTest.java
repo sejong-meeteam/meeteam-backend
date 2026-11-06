@@ -1,6 +1,14 @@
 package com.wardk.meeteam_backend.admindashboardunit;
 
-import com.wardk.meeteam_backend.domain.admin.*;
+import com.wardk.meeteam_backend.domain.admin.entity.AdminAuditLog;
+import com.wardk.meeteam_backend.domain.admin.entity.AuditAction;
+import com.wardk.meeteam_backend.domain.admin.entity.AuditTargetType;
+import com.wardk.meeteam_backend.domain.admin.mapper.AdminResponseMapper;
+import com.wardk.meeteam_backend.domain.admin.repository.AdminDashboardRepository;
+import com.wardk.meeteam_backend.domain.admin.repository.AdminQueryRepository;
+import com.wardk.meeteam_backend.domain.admin.service.AdminAuditQueryService;
+import com.wardk.meeteam_backend.domain.admin.service.AdminDashboardService;
+
 import com.wardk.meeteam_backend.domain.application.entity.*;
 import com.wardk.meeteam_backend.domain.file.service.S3ImageUrlResolver;
 import com.wardk.meeteam_backend.domain.job.entity.*;
@@ -57,7 +65,7 @@ class AdminDashboardPersistenceTest {
     }
     @Test void emptyDatabaseReturnsZeroStatsAndEmptyArrays() {
         var result = dashboard.dashboard();
-        assertThat(result.stats()).isEqualTo(new com.wardk.meeteam_backend.web.admin.AdminResponses.DashboardStats(0,0,0,0,0,0,0));
+        assertThat(result.stats()).isEqualTo(new com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.DashboardStats(0,0,0,0,0,0,0));
         assertThat(result.recentMembers()).isEmpty(); assertThat(result.recentProjects()).isEmpty(); assertThat(result.recentAuditLogs()).isEmpty();
     }
     @Test void countsMatchFrontendSemanticsIncludingSeoulMidnightAndEffectiveSuspension() {
@@ -79,7 +87,7 @@ class AdminDashboardPersistenceTest {
         var accepted = ProjectApplication.create(visible, admin, position, "승인"); accepted.updateStatus(ApplicationStatus.ACCEPTED); em.persist(accepted);
         em.flush(); em.clear();
         var result = dashboard.dashboard();
-        assertThat(result.stats()).isEqualTo(new com.wardk.meeteam_backend.web.admin.AdminResponses.DashboardStats(6,3,1,3,1,1,3));
+        assertThat(result.stats()).isEqualTo(new com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.DashboardStats(6,3,1,3,1,1,3));
         assertThat(result.recentMembers()).hasSize(5).noneMatch(m -> m.status().equals("WITHDRAWN"));
         assertThat(result.recentMembers()).allMatch(m -> "2026****".equals(m.studentId()));
         assertThat(result.recentMembers()).filteredOn(m -> m.memberId().equals(expired.getId())).singleElement()

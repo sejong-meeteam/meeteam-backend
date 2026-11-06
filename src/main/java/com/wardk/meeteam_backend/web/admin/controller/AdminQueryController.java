@@ -1,9 +1,9 @@
-package com.wardk.meeteam_backend.web.admin;
+package com.wardk.meeteam_backend.web.admin.controller;
 
-import com.wardk.meeteam_backend.domain.admin.AdminQueryOptions;
-import com.wardk.meeteam_backend.domain.admin.AdminQueryService;
+import com.wardk.meeteam_backend.domain.admin.dto.AdminQueryOptions;
+import com.wardk.meeteam_backend.domain.admin.service.AdminQueryService;
 import com.wardk.meeteam_backend.global.response.SuccessResponse;
-import com.wardk.meeteam_backend.web.admin.AdminResponses.*;
+import com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
@@ -14,7 +14,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminQueryController {
     private final AdminQueryService service;
-    private final com.wardk.meeteam_backend.domain.admin.AdminDashboardService dashboard;
+    private final com.wardk.meeteam_backend.domain.admin.service.AdminDashboardService dashboard;
 
     @GetMapping("/dashboard")
     public SuccessResponse<Dashboard> dashboard() {

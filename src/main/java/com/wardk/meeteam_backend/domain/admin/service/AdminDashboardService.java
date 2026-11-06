@@ -1,7 +1,12 @@
-package com.wardk.meeteam_backend.domain.admin;
+package com.wardk.meeteam_backend.domain.admin.service;
+
+import com.wardk.meeteam_backend.domain.admin.dto.AdminQueryOptions;
+import com.wardk.meeteam_backend.domain.admin.mapper.AdminResponseMapper;
+import com.wardk.meeteam_backend.domain.admin.repository.AdminDashboardRepository;
+import com.wardk.meeteam_backend.domain.admin.repository.AdminQueryRepository;
 
 import com.wardk.meeteam_backend.domain.job.entity.JobPosition;
-import com.wardk.meeteam_backend.web.admin.AdminResponses;
+import com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;

@@ -1,4 +1,13 @@
-package com.wardk.meeteam_backend.domain.admin;
+package com.wardk.meeteam_backend.domain.admin.service;
+
+import com.wardk.meeteam_backend.domain.admin.entity.AdminAuditLog;
+import com.wardk.meeteam_backend.domain.admin.entity.AuditAction;
+import com.wardk.meeteam_backend.domain.admin.entity.AuditTargetType;
+import com.wardk.meeteam_backend.domain.admin.mapper.AdminResponseMapper;
+import com.wardk.meeteam_backend.domain.admin.policy.AdminActionGuard;
+import com.wardk.meeteam_backend.domain.admin.policy.AdminReason;
+import com.wardk.meeteam_backend.domain.admin.repository.AdminAuditWriter;
+import com.wardk.meeteam_backend.domain.admin.repository.AdminQueryRepository;
 
 import com.wardk.meeteam_backend.domain.application.entity.ApplicationStatus;
 import com.wardk.meeteam_backend.domain.application.entity.ProjectApplication;
@@ -12,7 +21,7 @@ import com.wardk.meeteam_backend.domain.projectmember.entity.ProjectMemberRole;
 import com.wardk.meeteam_backend.global.auth.service.TestAccountService;
 import com.wardk.meeteam_backend.global.exception.CustomException;
 import com.wardk.meeteam_backend.global.response.ErrorCode;
-import com.wardk.meeteam_backend.web.admin.AdminResponses.MemberSummary;
+import com.wardk.meeteam_backend.web.admin.dto.response.AdminResponses.MemberSummary;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;

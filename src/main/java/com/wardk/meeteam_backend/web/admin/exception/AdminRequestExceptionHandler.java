@@ -1,4 +1,8 @@
-package com.wardk.meeteam_backend.web.admin;
+package com.wardk.meeteam_backend.web.admin.exception;
+
+import com.wardk.meeteam_backend.web.admin.controller.AdminAuditController;
+import com.wardk.meeteam_backend.web.admin.controller.AdminMutationController;
+import com.wardk.meeteam_backend.web.admin.controller.AdminQueryController;
 
 import com.wardk.meeteam_backend.global.response.ErrorResponse;
 import org.springframework.core.Ordered;

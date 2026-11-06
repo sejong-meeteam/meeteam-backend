@@ -1,4 +1,4 @@
-package com.wardk.meeteam_backend.domain.admin;
+package com.wardk.meeteam_backend.domain.admin.entity;
 
 public enum AuditAction {
     MEMBER_SUSPEND, MEMBER_UNSUSPEND, MEMBER_ROLE_CHANGE, MEMBER_WITHDRAW,
