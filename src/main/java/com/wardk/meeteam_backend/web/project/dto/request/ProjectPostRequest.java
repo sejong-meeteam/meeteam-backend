@@ -35,7 +35,8 @@ public class ProjectPostRequest {
     private String githubRepositoryUrl;
 
     @Schema(description = "소통 채널 링크 (디코, 슬랙, 카카오톡 오픈 채팅)", example = "https://discord.gg/abc123")
-    @Pattern(regexp = COMMUNICATION_CHANNEL_URL_PATTERN)
+    @Pattern(regexp = COMMUNICATION_CHANNEL_URL_PATTERN,
+            message = "올바른 Discord·Slack·카카오 오픈채팅 링크를 입력해 주세요.")
     private String communicationChannelUrl;
 
     @NotNull(message = "카테고리를 선택해주세요.")

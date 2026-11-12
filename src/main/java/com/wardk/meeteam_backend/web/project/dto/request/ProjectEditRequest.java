@@ -45,7 +45,8 @@ public record ProjectEditRequest(
         String githubRepositoryUrl,
 
         @Schema(description = "소통 채널 링크", example = "https://discord.gg/abc123")
-        @Pattern(regexp = COMMUNICATION_CHANNEL_URL_PATTERN)
+        @Pattern(regexp = COMMUNICATION_CHANNEL_URL_PATTERN,
+                message = "올바른 Discord·Slack·카카오 오픈채팅 링크를 입력해 주세요.")
         String communicationChannelUrl,
 
         @Schema(description = "프로젝트 마감일 (END_DATE 방식일 때 필수)", example = "2025-12-31")
