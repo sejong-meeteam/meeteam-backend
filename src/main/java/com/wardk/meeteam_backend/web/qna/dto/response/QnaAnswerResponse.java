@@ -37,7 +37,7 @@ public record QnaAnswerResponse(
         return new QnaAnswerResponse(
                 answer.getId(),
                 answer.getWriter().getId(),
-                answer.getWriter().getRealName(),
+                answer.getWriter().getPublicName(),
                 answer.getWriter().getStoreFileName(),
                 isLeader,
                 answer.getContent(),

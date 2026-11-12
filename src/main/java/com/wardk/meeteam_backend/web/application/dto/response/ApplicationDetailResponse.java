@@ -75,7 +75,11 @@ public record ApplicationDetailResponse(
     ) {
     }
 
-    public static ApplicationDetailResponse from(ProjectApplication application) {
+    /**
+     * Protected-context factory. Call only after the service has verified that the requester is
+     * the actual creator of this application's project.
+     */
+    public static ApplicationDetailResponse forAuthorizedProjectCreator(ProjectApplication application) {
         Member applicant = application.getApplicant();
 
         List<TechStackInfo> techStacks = applicant.getMemberTechStacks().stream()

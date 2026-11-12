@@ -3,6 +3,7 @@ package com.wardk.meeteam_backend.domain.member.repository;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQuery;
@@ -47,16 +48,13 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
             return searchMembersV1WithProjectCountSort(name, jobFieldId, techStackNames, pageable);
         }
 
-        return applyPagination(pageable, qf ->
-                qf.select(member)
-                        .from(member)
-                        .where(
-                                publiclyVisibleMember(),
-                                nameContains(name),
-                                jobFieldIdEquals(jobFieldId),
-                                techStackNamesExist(techStackNames)
-                        )
-        );
+        JPAQuery<Member> query = queryFactory.select(member).from(member).where(
+                publiclyVisibleMember(), nameContains(name), jobFieldIdEquals(jobFieldId), techStackNamesExist(techStackNames));
+        applySafeMemberSorting(query, pageable);
+        List<Member> content = query.offset(pageable.getOffset()).limit(pageable.getPageSize()).fetch();
+        JPAQuery<Long> countQuery = queryFactory.select(member.count()).from(member).where(
+                publiclyVisibleMember(), nameContains(name), jobFieldIdEquals(jobFieldId), techStackNamesExist(techStackNames));
+        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }
 
     /**
@@ -86,10 +84,11 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
                                 projectMember.project.visibility.eq(ProjectVisibility.VISIBLE));
                 query.orderBy(new OrderSpecifier<>(direction, projectCountExpr));
             } else {
-                getQuerydsl().applySorting(Sort.by(sortOrder), query);
+                applySafeMemberSort(query, sortOrder);
             }
         }
 
+        query.orderBy(member.id.asc());
         List<Member> content = query
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -108,6 +107,28 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
         return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }
 
+    private void applySafeMemberSorting(JPAQuery<?> query, Pageable pageable) {
+        for (Sort.Order order : pageable.getSort()) applySafeMemberSort(query, order);
+        query.orderBy(member.id.asc());
+    }
+
+    private void applySafeMemberSort(JPAQuery<?> query, Sort.Order order) {
+        if (!"realName".equals(order.getProperty())
+                && order.getProperty().toLowerCase(java.util.Locale.ROOT).contains("realname")) {
+            throw new com.wardk.meeteam_backend.global.exception.CustomException(
+                    com.wardk.meeteam_backend.global.response.ErrorCode.INVALID_REQUEST);
+        }
+        if (order.getProperty().contains(".")) {
+            getQuerydsl().applySorting(Sort.by(order), query);
+        } else if ("realName".equals(order.getProperty())) {
+            // Group private names by a constant, then ID. Never sort by a hidden suffix
+            // (or disclose a one-code-point name through ordering).
+            var safeName = new CaseBuilder().when(member.namePrivate.isTrue())
+                    .then("*").otherwise(member.realName);
+            query.orderBy(new OrderSpecifier<>(order.isAscending() ? Order.ASC : Order.DESC, safeName));
+        } else getQuerydsl().applySorting(Sort.by(order), query);
+    }
+
     private BooleanExpression publiclyVisibleMember() {
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
         return member.deletedAt.isNull()
@@ -123,7 +144,7 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
         if (name == null || name.isBlank()) {
             return null;
         }
-        return member.realName.containsIgnoreCase(name);
+        return member.namePrivate.isFalse().and(member.realName.containsIgnoreCase(name));
     }
 
     /**
@@ -180,11 +201,11 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
 
         if (!hasProjectCountSort) {
             // projectCount 정렬이 없으면 기본 applyPagination 사용
-            return applyPagination(pageable, qf ->
-                    qf.select(member)
-                            .from(member)
-                            .where(publiclyVisibleMember())
-            );
+            JPAQuery<Member> query = queryFactory.select(member).from(member).where(publiclyVisibleMember());
+            applySafeMemberSorting(query, pageable);
+            List<Member> content = query.offset(pageable.getOffset()).limit(pageable.getPageSize()).fetch();
+            JPAQuery<Long> countQuery = queryFactory.select(member.count()).from(member).where(publiclyVisibleMember());
+            return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
         }
 
         // projectCount 정렬 처리
@@ -204,10 +225,11 @@ public class MemberRepositoryImpl extends Querydsl4RepositorySupport implements 
                                 projectMember.project.visibility.eq(ProjectVisibility.VISIBLE));
                 query.orderBy(new OrderSpecifier<>(direction, projectCountExpr));
             } else {
-                getQuerydsl().applySorting(Sort.by(sortOrder), query);
+                applySafeMemberSort(query, sortOrder);
             }
         }
 
+        query.orderBy(member.id.asc());
         List<Member> content = query
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())

@@ -39,6 +39,29 @@ public class Member extends BaseEntity {
 
     private String realName;
 
+    @Column(nullable = false)
+    private boolean namePrivate = false;
+
+    /** Safe default for every public/member-facing response. Never store a second name. */
+    public String getPublicName() {
+        if (!namePrivate || realName == null || realName.isBlank()) return realName;
+        String value = realName.strip();
+        int length = value.codePointCount(0, value.length());
+        if (length <= 1) return "*";
+        return value.substring(0, value.offsetByCodePoints(0, 1)) + "*".repeat(length - 1);
+    }
+
+    /** Null means an older client omitted the preference: preserve the stored value. */
+    public void updateNamePrivacy(Boolean namePrivate) {
+        if (namePrivate != null) this.namePrivate = namePrivate;
+    }
+
+    @Column(length = 200)
+    private String department;
+
+    @Column(nullable = false)
+    private boolean schoolProfileVerified = false;
+
     private String storeFileName;
 
     @Enumerated(value = EnumType.STRING)
@@ -188,6 +211,17 @@ public class Member extends BaseEntity {
                 .build();
     }
 
+    /** School-authoritative identity; no client-entered name or department is trusted. */
+    public static Member createSchoolVerifiedMember(String studentId, String name, String department,
+                                                    SejongRegisterCommand command, String encodedPassword, String imageUrl) {
+        var verified = new com.wardk.meeteam_backend.global.auth.client.SejongPortalProfile(studentId, name, department);
+        Member member = createSejongMember(verified.studentId(), command, encodedPassword, imageUrl);
+        member.realName = verified.name();
+        member.department = verified.department();
+        member.schoolProfileVerified = true;
+        return member;
+    }
+
     /**
      * 테스트/시드 데이터용 정적 팩토리 메서드
      */
@@ -230,6 +264,19 @@ public class Member extends BaseEntity {
         return "local-admin".equals(provider);
     }
 
+    public void validateProfileNameChange(String requestedName) {
+        if (schoolProfileVerified) {
+            if (requestedName != null && !java.util.Objects.equals(realName, requestedName)) {
+                throw new com.wardk.meeteam_backend.global.exception.CustomException(
+                        com.wardk.meeteam_backend.global.response.ErrorCode.INVALID_REQUEST,
+                        "학교에서 확인한 이름은 직접 수정할 수 없습니다.");
+            }
+        } else if (requestedName == null || requestedName.isBlank()) {
+            throw new com.wardk.meeteam_backend.global.exception.CustomException(
+                    com.wardk.meeteam_backend.global.response.ErrorCode.INVALID_REQUEST, "이름을 입력해주세요.");
+        }
+    }
+
     public void addJobPosition(JobPosition jobPosition) {
         jobPositions.add(new MemberJobPosition(this, jobPosition));
     }
@@ -249,7 +296,8 @@ public class Member extends BaseEntity {
                               Boolean isParticipating, String introduction,
                               String githubUrl, String blogUrl) {
 
-        this.realName = realName;
+        validateProfileNameChange(realName);
+        if (!schoolProfileVerified) this.realName = realName;
         this.age = age;
         this.gender = gender;
         this.isParticipating = isParticipating;

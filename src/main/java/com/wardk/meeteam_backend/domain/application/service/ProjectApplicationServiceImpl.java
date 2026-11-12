@@ -171,7 +171,7 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
                             .filter(rs -> rs.getJobPosition().getId().equals(application.getJobPosition().getId()))
                             .findFirst()
                             .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_NOT_FOUND));
-                    return ProjectApplicationListResponse.from(application, recruitmentState);
+                    return ProjectApplicationListResponse.forAuthorizedProjectCreator(application, recruitmentState);
                 })
                 .toList();
     }
@@ -189,7 +189,7 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
         ProjectApplication application = applicationRepository.findByIdWithApplicantAndJobPosition(projectId, applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        return ApplicationDetailResponse.from(application);
+        return ApplicationDetailResponse.forAuthorizedProjectCreator(application);
     }
 
     @Override

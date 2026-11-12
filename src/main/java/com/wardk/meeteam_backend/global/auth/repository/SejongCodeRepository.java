@@ -39,10 +39,11 @@ public class SejongCodeRepository {
         try {
             String json = objectMapper.writeValueAsString(info);
             stringRedisTemplate.opsForValue().set(key, json, REGISTER_TTL);
-            log.info("세종대 신규 회원 정보 저장 완료. code: {}, TTL: {}분", code, REGISTER_TTL.toMinutes());
+            log.info("세종대 신규 회원 정보 저장 완료. TTL: {}분", REGISTER_TTL.toMinutes());
         } catch (JsonProcessingException e) {
-            log.error("세종대 신규 회원 정보 직렬화 실패: {}", e.getMessage());
-            throw new RuntimeException("세종대 정보 저장 실패", e);
+            log.error("세종대 신규 회원 정보 직렬화 실패");
+            throw new com.wardk.meeteam_backend.global.exception.CustomException(
+                    com.wardk.meeteam_backend.global.response.ErrorCode.SEJONG_PORTAL_ERROR);
         }
         return code;
     }
@@ -57,15 +58,15 @@ public class SejongCodeRepository {
         String key = KEY_PREFIX + code;
         String json = stringRedisTemplate.opsForValue().getAndDelete(key);
         if (json == null) {
-            log.warn("세종대 신규 회원 정보를 찾을 수 없습니다. code: {}", code);
+            log.warn("세종대 신규 회원 정보를 찾을 수 없습니다.");
             return Optional.empty();
         }
         try {
             SejongRegisterInfo info = objectMapper.readValue(json, SejongRegisterInfo.class);
-            log.info("세종대 신규 회원 정보 조회 및 삭제 완료. code: {}", code);
+            log.info("세종대 신규 회원 정보 조회 및 삭제 완료.");
             return Optional.of(info);
         } catch (JsonProcessingException e) {
-            log.error("세종대 신규 회원 정보 역직렬화 실패: {}", e.getMessage());
+            log.error("세종대 신규 회원 정보 역직렬화 실패");
             return Optional.empty();
         }
     }

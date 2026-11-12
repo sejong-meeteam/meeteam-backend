@@ -35,7 +35,7 @@ public class MainPageProjectResponse { // 프로젝트 카드 정보
                 .projectCategory(project.getProjectCategory() != null ? project.getProjectCategory().name() : null)
                 .platformCategory(project.getPlatformCategory() != null ? project.getPlatformCategory().name() : null)
                 .imageUrl(project.getImageUrl())
-                .creatorName(project.getCreator() != null ? project.getCreator().getRealName() : null)
+                .creatorName(project.getCreator() != null ? project.getCreator().getPublicName() : null)
                 .createdDate(project.getCreatedAt())
                 .endDate(project.getEndDate())
                 .likes(project.getLikeCount())

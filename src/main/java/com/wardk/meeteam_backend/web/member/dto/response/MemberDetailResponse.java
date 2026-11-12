@@ -99,7 +99,7 @@ public class MemberDetailResponse {
         return MemberDetailResponse.builder()
                 .memberId(member.getId())
                 .profileImageUrl(member.getStoreFileName())
-                .name(member.getRealName())
+                .name(member.getPublicName())
                 .age(age)
                 .gender(member.getGender())
                 .representativePosition(representativePosition)

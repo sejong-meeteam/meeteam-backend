@@ -24,8 +24,7 @@ public class SejongRegisterRequest {
     @NotBlank(message = "인증 코드를 입력해주세요")
     private String code;
 
-    @Schema(description = "이름", example = "홍길동", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "이름을 입력해주세요")
+    @Schema(description = "호환용 필드이며 무시됩니다. 이름은 학교 인증 정보에서 결정됩니다.", deprecated = true)
     private String name;
 
     @Schema(description = "생년월일", example = "2000-01-01", requiredMode = Schema.RequiredMode.REQUIRED)

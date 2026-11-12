@@ -38,7 +38,7 @@ public class ProjectWithLikeDto {
         this.projectMembers = project.getMembers().stream()
                 .map(member -> ProjectMemberListResponse.responseDto(
                         member.getMember().getId(),
-                        member.getMember().getRealName(),
+                        member.getMember().getPublicName(),
                         member.getMember().getStoreFileName(),
                         project.getCreator().getId().equals(member.getMember().getId())
                 ))

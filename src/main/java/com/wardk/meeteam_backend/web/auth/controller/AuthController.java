@@ -57,7 +57,7 @@ public class AuthController {
         if (result.isNewMember()) {
             // 신규 회원 - 회원가입용 코드 반환
             log.info("세종대 포털 인증 성공 - 신규 회원, 회원가입 필요");
-            return SuccessResponse.onSuccess(SejongLoginResponse.newMember(result.getCode()));
+            return SuccessResponse.onSuccess(SejongLoginResponse.newMember(result.getCode(), result.getVerifiedProfile()));
         }
 
         // 기존 회원 - 토큰 발급
@@ -77,7 +77,7 @@ public class AuthController {
             @Parameter(description = "프로필 이미지", required = false)
             @RequestPart(value = "file", required = false) MultipartFile file
     ) {
-        log.info("세종대 회원가입 요청 - name: {}", request.getName());
+        log.info("세종대 회원가입 요청");
         TokenExchangeResult result = authService.sejongRegister(SejongRegisterCommand.from(request), file);
         accessTokenCookieProvider.addCookie(response, result.getAccessToken());
         refreshTokenCookieProvider.addCookie(response, result.getRefreshToken());

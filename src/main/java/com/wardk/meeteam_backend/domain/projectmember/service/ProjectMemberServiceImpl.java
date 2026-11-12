@@ -93,7 +93,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
                     Member member = pm.getMember();
                     return ProjectMemberListResponse.responseDto(
                             member.getId(),
-                            member.getRealName(),
+                            member.getPublicName(),
                             member.getStoreFileName(),
                             pm.getRole() == ProjectMemberRole.LEADER
                     );

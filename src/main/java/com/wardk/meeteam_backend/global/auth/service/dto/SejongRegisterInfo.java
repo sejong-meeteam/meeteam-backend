@@ -12,4 +12,22 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SejongRegisterInfo {
     private String studentId;
+    private String name;
+    private String department;
+
+    /** Legacy codes deserialize but cannot register without a freshly verified profile. */
+    public SejongRegisterInfo(String studentId) {
+        this.studentId = studentId;
+    }
+
+    public com.wardk.meeteam_backend.global.auth.client.SejongPortalProfile requireVerifiedProfile() {
+        try {
+            return new com.wardk.meeteam_backend.global.auth.client.SejongPortalProfile(studentId, name, department);
+        } catch (IllegalArgumentException e) {
+            throw new com.wardk.meeteam_backend.global.exception.CustomException(
+                    com.wardk.meeteam_backend.global.response.ErrorCode.INVALID_SEJONG_CODE);
+        }
+    }
+
+    @Override public String toString() { return "SejongRegisterInfo[redacted]"; }
 }

@@ -14,19 +14,27 @@ public class SejongLoginResult {
     private final String accessToken;
     private final String refreshToken;
     private final String code;
+    private final com.wardk.meeteam_backend.global.auth.client.SejongPortalProfile verifiedProfile;
 
-    private SejongLoginResult(boolean isNewMember, String accessToken, String refreshToken, String code) {
+    private SejongLoginResult(boolean isNewMember, String accessToken, String refreshToken, String code,
+                              com.wardk.meeteam_backend.global.auth.client.SejongPortalProfile verifiedProfile) {
         this.isNewMember = isNewMember;
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.code = code;
+        this.verifiedProfile = verifiedProfile;
     }
 
     public static SejongLoginResult existingMember(String accessToken, String refreshToken) {
-        return new SejongLoginResult(false, accessToken, refreshToken, null);
+        return new SejongLoginResult(false, accessToken, refreshToken, null, null);
     }
 
     public static SejongLoginResult newMember(String code) {
-        return new SejongLoginResult(true, null, null, code);
+        return new SejongLoginResult(true, null, null, code, null);
+    }
+
+    public static SejongLoginResult newMember(String code,
+            com.wardk.meeteam_backend.global.auth.client.SejongPortalProfile verifiedProfile) {
+        return new SejongLoginResult(true, null, null, code, verifiedProfile);
     }
 }

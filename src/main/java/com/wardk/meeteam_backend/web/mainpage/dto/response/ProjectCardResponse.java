@@ -57,7 +57,7 @@ public class ProjectCardResponse implements Serializable {
 			.platformName(project.getPlatformName())
 			.imageUrl(project.getImageUrl())
 			.endDate(project.getEndDate())
-			.creatorName(project.getCreator().getRealName())
+			.creatorName(project.getCreator().getPublicName())
 			.creatorImageUrl(project.getCreator().getStoreFileName())
 			.currentCount(currentCount)
 			.recruitmentCount(recruitmentCount)

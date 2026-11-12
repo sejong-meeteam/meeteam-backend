@@ -29,7 +29,7 @@ public class ProjectListResponse {
                 .projectId(project.getId())
                 .name(project.getName())
                 .imageUrl(project.getImageUrl())
-                .creatorName(project.getCreator().getRealName())
+                .creatorName(project.getCreator().getPublicName())
                 .skills(project.getProjectSkills().stream()
                         .map(ps -> ps.getSkill().getSkillName()).toList())
                 .startDate(project.getStartDate())

@@ -2,6 +2,8 @@ package com.wardk.meeteam_backend.web.application.controller;
 
 import com.wardk.meeteam_backend.domain.application.service.ProjectApplicationService;
 import com.wardk.meeteam_backend.global.response.SuccessResponse;
+import com.wardk.meeteam_backend.global.response.ErrorCode;
+import com.wardk.meeteam_backend.global.exception.CustomException;
 import com.wardk.meeteam_backend.web.application.dto.request.*;
 import com.wardk.meeteam_backend.web.application.dto.response.*;
 import com.wardk.meeteam_backend.web.auth.dto.CustomSecurityUserDetails;
@@ -50,7 +52,7 @@ public class ApplicationController {
             @PathVariable Long projectId,
             @AuthenticationPrincipal CustomSecurityUserDetails userDetails) {
 
-        List<ProjectApplicationListResponse> applicationList = applicationService.getApplicationList(projectId, userDetails.getUsername());
+        List<ProjectApplicationListResponse> applicationList = applicationService.getApplicationList(projectId, requireAuthenticatedEmail(userDetails));
         return SuccessResponse.onSuccess(applicationList);
     }
 
@@ -61,7 +63,7 @@ public class ApplicationController {
             @PathVariable Long applicationId,
             @AuthenticationPrincipal CustomSecurityUserDetails userDetails) {
 
-        ApplicationDetailResponse applicationDetail = applicationService.getApplicationDetail(projectId, applicationId, userDetails.getUsername());
+        ApplicationDetailResponse applicationDetail = applicationService.getApplicationDetail(projectId, applicationId, requireAuthenticatedEmail(userDetails));
 
         return SuccessResponse.onSuccess(applicationDetail);
     }
@@ -98,6 +100,11 @@ public class ApplicationController {
         ApplicationCancelResponse response = applicationService.cancel(applicationId, userDetails.getMemberId());
 
         return SuccessResponse.onSuccess(response);
+    }
+
+    private String requireAuthenticatedEmail(CustomSecurityUserDetails userDetails) {
+        if (userDetails == null) throw new CustomException(ErrorCode.UNAUTHORIZED);
+        return userDetails.getUsername();
     }
 
     /**

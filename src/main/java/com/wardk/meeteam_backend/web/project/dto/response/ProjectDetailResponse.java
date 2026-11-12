@@ -94,7 +94,7 @@ public record ProjectDetailResponse(
         public static ProjectMemberInfo from(ProjectMember projectMember) {
             return new ProjectMemberInfo(
                     projectMember.getMember().getId(),
-                    projectMember.getMember().getRealName(),
+                    projectMember.getMember().getPublicName(),
                     projectMember.getMember().getStoreFileName()
             );
         }

@@ -48,7 +48,7 @@ public record ProjectQnaResponse(
         return new ProjectQnaResponse(
                 qna.getId(),
                 qna.getQuestioner().getId(),
-                qna.getQuestioner().getRealName(),
+                qna.getQuestioner().getPublicName(),
                 qna.getQuestioner().getStoreFileName(),
                 qna.getQuestion(),
                 qna.getCreatedAt(),
@@ -72,7 +72,7 @@ public record ProjectQnaResponse(
         return new ProjectQnaResponse(
                 qna.getId(),
                 qna.getQuestioner().getId(),
-                canView ? qna.getQuestioner().getRealName() : "비밀글",
+                canView ? qna.getQuestioner().getPublicName() : "비밀글",
                 canView ? qna.getQuestioner().getStoreFileName() : null,
                 canView ? qna.getQuestion() : "비밀글입니다.",
                 qna.getCreatedAt(),

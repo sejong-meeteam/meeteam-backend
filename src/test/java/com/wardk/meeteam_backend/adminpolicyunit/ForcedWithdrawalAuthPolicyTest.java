@@ -46,6 +46,8 @@ class ForcedWithdrawalAuthPolicyTest {
     @Test void ordinaryVoluntaryWithdrawalRejoinFlowRemainsUnchanged() {
         when(members.findByStudentIdAndDeletedAtIsNull("20261234")).thenReturn(Optional.empty());
         when(codes.saveRegisterInfo(any())).thenReturn("unit-registration-code");
+        when(portal.authenticateAndFetchProfile("20261234", "unit-password"))
+                .thenReturn(new com.wardk.meeteam_backend.global.auth.client.SejongPortalProfile("20261234", "테스트 학생", "테스트학과"));
         var response = auth.sejongLogin(new SejongLoginCommand("20261234", "unit-password"));
         assertThat(response.isNewMember()).isTrue();
         verify(codes).saveRegisterInfo(any());

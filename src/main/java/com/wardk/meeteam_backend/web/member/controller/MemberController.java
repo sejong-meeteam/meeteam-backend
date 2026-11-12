@@ -37,7 +37,7 @@ public class MemberController {
 
     @Operation(
             summary = "특정 사용자 상세 조회",
-            description = "특정 사용자의 상세 프로필 정보를 조회합니다. 기본 정보, 자기소개, 참여 프로젝트, 보유 기술 등을 포함합니다."
+            description = "특정 사용자의 상세 프로필 정보를 조회합니다. 이름 비공개 회원은 마스킹 이름을 반환합니다. 리더의 실명 조회 예외는 해당 프로젝트 지원서 조회 API에서만 적용됩니다."
     )
     @GetMapping("/api/v1/members/{memberId}")
     public SuccessResponse<MemberDetailResponse> getMemberDetail(
@@ -49,7 +49,7 @@ public class MemberController {
 
     @Operation(
             summary = "팀원 찾기",
-            description = "이름, 직군, 기술스택으로 팀원을 검색합니다. 이름은 한 글자만 입력해도 검색됩니다. " +
+            description = "이름, 직군, 기술스택으로 팀원을 검색합니다. 이름은 한 글자만 입력해도 검색되며 비공개 이름은 이름 검색 대상에서 제외합니다. " +
                     "정렬: projectExperienceCount,desc (프로젝트 경험 많은 순), realName,asc (이름순)"
     )
     @GetMapping("/api/v1/members/search")
@@ -87,7 +87,7 @@ public class MemberController {
 
     @Operation(
             summary = "나의 프로필 수정",
-            description = "로그인한 사용자의 프로필 정보를 수정합니다. 프로필 이미지, 기본 정보, 관심 직무, 기술 스택 등을 수정할 수 있습니다."
+            description = "로그인한 사용자의 프로필 정보를 수정합니다. memberInfo의 namePrivate로 이름 비공개를 설정합니다. 생략/null이면 기존 값을 유지합니다. 학교 확인 이름의 수정 금지와는 별개의 설정입니다."
     )
     @PutMapping(value = "/api/v1/members/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public SuccessResponse<MemberProfileUpdateResponse> updateMyProfile(

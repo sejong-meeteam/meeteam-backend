@@ -18,10 +18,18 @@ import java.util.List;
 @Schema(description = "회원 프로필 수정 요청")
 public class MemberProfileUpdateRequest {
 
-    @NotBlank(message = "이름을 입력해주세요.")
-    @Size(max = 50, message = "이름은 50자 이하로 입력해주세요.")
-    @Schema(description = "회원 실명", example = "김철수")
+    @Size(max = 100, message = "이름은 100자 이하로 입력해주세요.")
+    @Schema(description = "학교 확인 계정은 생략 가능하며 변경할 수 없습니다. 기존 계정은 필수입니다.", example = "김철수")
     private String name;
+
+    @Schema(description = "이름 비공개 여부. true이면 일반 응답에서 마스킹하며 해당 지원 프로젝트 리더는 지원서에서 실명을 확인합니다. 생략/null이면 기존 설정을 유지합니다.", example = "true")
+    private Boolean namePrivate;
+
+    /** Source compatibility for older Java callers; omitted preference must not reset privacy. */
+    public MemberProfileUpdateRequest(String name, Integer age, Gender gender, List<Long> jobPositionIds,
+            List<TechStackOrderRequest> techStacks, Boolean isParticipating, String introduction, String githubUrl, String blogUrl) {
+        this(name, null, age, gender, jobPositionIds, techStacks, isParticipating, introduction, githubUrl, blogUrl);
+    }
 
     @NotNull(message = "나이를 입력해주세요.")
     @Min(value = 1, message = "나이는 1 이상이어야 합니다.")

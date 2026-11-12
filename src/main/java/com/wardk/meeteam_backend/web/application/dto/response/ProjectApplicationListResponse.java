@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 /**
  * 프로젝트 지원자 목록 응답 DTO.
- * 프로젝트 리더가 지원자 목록을 조회할 때 사용됩니다.
+ * 프로젝트의 실제 생성자가 인증된 지원자 목록을 조회할 때만 사용됩니다.
  */
 @Schema(description = "프로젝트 지원자 목록 응답")
 public record ProjectApplicationListResponse(
@@ -51,7 +51,11 @@ public record ProjectApplicationListResponse(
         @Schema(description = "포지션 모집 마감 여부")
         Boolean isRecruitmentFull
 ) {
-    public static ProjectApplicationListResponse from(ProjectApplication application, RecruitmentState recruitmentState) {
+    /**
+     * Protected-context factory. Call only after the service has verified that the requester is
+     * the actual creator of this application's project.
+     */
+    public static ProjectApplicationListResponse forAuthorizedProjectCreator(ProjectApplication application, RecruitmentState recruitmentState) {
         return new ProjectApplicationListResponse(
                 application.getId(),
                 application.getApplicant().getId(),

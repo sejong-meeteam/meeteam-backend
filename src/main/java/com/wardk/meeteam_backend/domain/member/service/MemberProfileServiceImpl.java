@@ -145,6 +145,9 @@ public class MemberProfileServiceImpl implements MemberProfileService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
+        // Reject identity edits before any S3 upload/deletion or other profile mutation.
+        member.validateProfileNameChange(request.getName());
+
         // 프로필 사진 처리 (새 사진이 업로드된 경우에만)
         if (profileImage != null && !profileImage.isEmpty()) {
             log.info("새 프로필 사진 업로드 요청 - 파일명: {}, 크기: {}",
@@ -178,6 +181,8 @@ public class MemberProfileServiceImpl implements MemberProfileService {
             request.getGithubUrl(),
             request.getBlogUrl()
         );
+
+        member.updateNamePrivacy(request.getNamePrivate());
 
         // 기존 관심 분야 삭제 후 새로 추가
         updateMemberJobPositions(member, request.getJobPositionIds());
@@ -213,8 +218,8 @@ public class MemberProfileServiceImpl implements MemberProfileService {
                                                      List<String> techStackNames, Pageable pageable) {
         Page<Member> memberPage = memberRepository.searchMembersV1(name, jobFieldId, techStackNames, pageable);
 
-        log.info("팀원 검색 v1 - name: {}, jobFieldId: {}, techStacks: {}, 총 {}명",
-                name, jobFieldId, techStackNames, memberPage.getTotalElements());
+        log.debug("팀원 검색 v1 - nameFilterPresent: {}, 총 {}명",
+                name != null && !name.isBlank(), memberPage.getTotalElements());
 
         return memberPage.map(MemberCardResponse::from);
     }

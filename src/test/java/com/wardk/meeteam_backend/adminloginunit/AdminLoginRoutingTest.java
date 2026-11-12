@@ -52,17 +52,22 @@ class AdminLoginRoutingTest {
     @Test void regularStudentStillRequiresSchoolAuthentication() {
         when(members.findByStudentIdAndDeletedAtIsNull("20261234")).thenReturn(Optional.empty());
         when(codes.saveRegisterInfo(any())).thenReturn("synthetic-registration");
+        when(portal.authenticateAndFetchProfile("20261234", "synthetic-school-input"))
+                .thenReturn(new com.wardk.meeteam_backend.global.auth.client.SejongPortalProfile("20261234", "테스트 학생", "테스트학과"));
         var result = auth.sejongLogin(new SejongLoginCommand("20261234", "synthetic-school-input"));
         assertThat(result.isNewMember()).isTrue();
-        verify(portal).authenticate("20261234", "synthetic-school-input");
+        verify(portal).authenticateAndFetchProfile("20261234", "synthetic-school-input");
         verify(admins, never()).login(any(), any());
         verifyNoInteractions(jwt);
     }
     @Test void disabledLocalAdminDoesNotBypassPortal() {
         ReflectionTestUtils.setField(auth, "adminAccountService", null);
         when(members.findByStudentIdAndDeletedAtIsNull("99123456")).thenReturn(Optional.empty());
-        auth.sejongLogin(new SejongLoginCommand("99123456", "synthetic-input"));
-        verify(portal).authenticate("99123456", "synthetic-input");
+        when(portal.authenticateAndFetchProfile("99123456", "synthetic-input"))
+                .thenThrow(new CustomException(ErrorCode.SEJONG_LOGIN_FAILED));
+        assertThatThrownBy(() -> auth.sejongLogin(new SejongLoginCommand("99123456", "synthetic-input")))
+                .isInstanceOf(CustomException.class);
+        verify(portal).authenticateAndFetchProfile("99123456", "synthetic-input");
         verifyNoInteractions(admins);
     }
     @Test void existingNumericTestAccountRemainsSeparate() {

@@ -18,6 +18,9 @@ public class MemberProfileUpdateResponse {
     @Schema(description = "수정된 회원 이름", example = "김철수")
     private String name;
 
+    @Schema(description = "저장된 이름 비공개 설정")
+    private boolean namePrivate;
+
     @Schema(description = "수정 성공 메시지", example = "프로필이 성공적으로 수정되었습니다.")
     private String message;
 
@@ -27,6 +30,7 @@ public class MemberProfileUpdateResponse {
     public MemberProfileUpdateResponse(Member member) {
         this.memberId = member.getId();
         this.name = member.getRealName();
+        this.namePrivate = member.isNamePrivate();
         this.profileImageUrl = member.getStoreFileName();
         this.message = "프로필이 성공적으로 수정되었습니다.";
     }

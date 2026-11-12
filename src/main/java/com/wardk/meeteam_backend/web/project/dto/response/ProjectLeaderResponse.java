@@ -39,7 +39,7 @@ public record ProjectLeaderResponse(
 
         return new ProjectLeaderResponse(
                 leader.getId(),
-                leader.getRealName(),
+                leader.getPublicName(),
                 leader.getStoreFileName(),
                 jobPositions,
                 techStacks

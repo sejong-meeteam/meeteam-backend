@@ -28,6 +28,7 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
      */
     @Deprecated
     public Page<Project> findAllSlicedForSearchAtCondition(ProjectSearchCondition condition, Pageable pageable) {
+        validatePublicSort(pageable);
 
         Page<Project> projects = applyPagination(pageable, qf ->
             qf.select(project)
@@ -48,6 +49,7 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
 
     @Override
     public Slice<Project> searchWithSlice(ProjectSearchCondition condition, Pageable pageable) {
+        validatePublicSort(pageable);
         return applySlicing(pageable, qf ->
             qf.select(project)
                 .from(project)
@@ -65,6 +67,7 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
 
     @Override
     public Page<Project> findProjectsFromMainPageCondition(CategoryCondition condition, Pageable pageable) {
+        validatePublicSort(pageable);
         return applyPagination(pageable,qf ->
                 qf.select(project)
                         .from(project)
@@ -109,7 +112,15 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
             return null;
         }
         return project.name.containsIgnoreCase(keyword)
-            .or(project.creator.realName.containsIgnoreCase(keyword));
+            .or(project.creator.namePrivate.isFalse().and(project.creator.realName.containsIgnoreCase(keyword)));
+    }
+
+    private void validatePublicSort(Pageable pageable) {
+        if (pageable.getSort().stream().anyMatch(order -> order.getProperty()
+                .toLowerCase(java.util.Locale.ROOT).contains("realname"))) {
+            throw new com.wardk.meeteam_backend.global.exception.CustomException(
+                    com.wardk.meeteam_backend.global.response.ErrorCode.INVALID_REQUEST);
+        }
     }
 
     private BooleanExpression publiclyVisible() {

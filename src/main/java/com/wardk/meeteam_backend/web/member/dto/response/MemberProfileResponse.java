@@ -22,6 +22,12 @@ public class MemberProfileResponse {
 
 
     private String name;
+    @Schema(description = "이름 비공개 설정. 본인 응답의 name은 실명입니다.")
+    private boolean namePrivate;
+    @Schema(description = "학교에서 확인한 학과. 기존 계정은 null일 수 있습니다.")
+    private String department;
+    @Schema(description = "학교에서 이름과 학과를 확인한 계정인지 여부")
+    private boolean schoolProfileVerified;
     private Long memberId;
 
     @Schema(description = "서비스 권한", allowableValues = {"USER", "ADMIN"})
@@ -65,6 +71,9 @@ public class MemberProfileResponse {
         this.memberId = memberId;
         this.role = member.getRole();
         this.name = member.getRealName();
+        this.namePrivate = member.isNamePrivate();
+        this.department = member.getDepartment();
+        this.schoolProfileVerified = member.isSchoolProfileVerified();
         this.birthDate = member.getBirth();
         this.gender = member.getGender();
         this.email = member.getEmail();

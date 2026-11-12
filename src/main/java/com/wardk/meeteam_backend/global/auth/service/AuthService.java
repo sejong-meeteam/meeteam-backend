@@ -21,6 +21,7 @@ import com.wardk.meeteam_backend.domain.skill.repository.MemberSkillRepository;
 import com.wardk.meeteam_backend.global.auth.repository.SejongCodeRepository;
 import com.wardk.meeteam_backend.global.auth.repository.TokenBlacklistRepository;
 import com.wardk.meeteam_backend.global.auth.client.SejongPortalClient;
+import com.wardk.meeteam_backend.global.auth.client.SejongPortalProfile;
 import com.wardk.meeteam_backend.global.auth.service.dto.MemberJobPositionCommand;
 import com.wardk.meeteam_backend.global.auth.service.dto.SejongLoginCommand;
 import com.wardk.meeteam_backend.global.auth.service.dto.SejongLoginResult;
@@ -106,27 +107,27 @@ public class AuthService {
             return SejongLoginResult.existingMember(tokens.getAccessToken(), tokens.getRefreshToken());
         }
 
-        // Every other identity still requires actual Sejong portal authentication; no fallback after local failure.
-        // 세종대 포털 인증
-        sejongPortalClient.authenticate(command.studentId(), command.password());
-        requireNotAdministrativelyWithdrawn(command.studentId());
+        // The lookup chooses the required school operation; it never authorizes login by itself.
+        var existing = memberRepository.findByStudentIdAndDeletedAtIsNull(command.studentId());
+        if (existing.isPresent() || memberRepository.existsByStudentIdAndAdminWithdrawnTrue(command.studentId())) {
+            // Existing members keep login-only verification and are not renamed or migrated implicitly.
+            sejongPortalClient.authenticate(command.studentId(), command.password());
+            requireNotAdministrativelyWithdrawn(command.studentId());
+            Member member = existing.orElseThrow(() -> new CustomException(ErrorCode.SEJONG_PORTAL_ERROR));
+            requireActiveLogin(member);
+            member.recordLogin(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
+            return SejongLoginResult.existingMember(jwtUtil.createAccessToken(member), jwtUtil.createRefreshToken(member));
+        }
 
-        // 활성 회원 조회 (탈퇴하지 않은 회원만)
-        return memberRepository.findByStudentIdAndDeletedAtIsNull(command.studentId())
-                .map(member -> {
-                    requireActiveLogin(member);
-                    member.recordLogin(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
-                    String accessToken = jwtUtil.createAccessToken(member);
-                    String refreshToken = jwtUtil.createRefreshToken(member);
-                    return SejongLoginResult.existingMember(accessToken, refreshToken);
-                })
-                .orElseGet(() -> {
-                    // 신규 회원: 학번을 Redis에 저장하고 코드 반환
-                    String code = sejongCodeRepository.saveRegisterInfo(
-                            new SejongRegisterInfo(command.studentId())
-                    );
-                    return SejongLoginResult.newMember(code);
-                });
+        // First registration obtains identity from the same private session that authenticated the student.
+        SejongPortalProfile profile = sejongPortalClient.authenticateAndFetchProfile(command.studentId(), command.password());
+        requireNotAdministrativelyWithdrawn(command.studentId());
+        if (profile == null || !command.studentId().equals(profile.studentId())) {
+            throw new CustomException(ErrorCode.SEJONG_PORTAL_ERROR);
+        }
+        String code = sejongCodeRepository.saveRegisterInfo(
+                new SejongRegisterInfo(profile.studentId(), profile.name(), profile.department()));
+        return SejongLoginResult.newMember(code, profile);
     }
 
     /**
@@ -156,12 +157,13 @@ public class AuthService {
         }
         requireNotAdministrativelyWithdrawn(registerInfo.getStudentId());
         validateStudentIdNotDuplicated(registerInfo.getStudentId());
+        // Old/expired-format codes must require fresh school authentication, never a client-supplied name.
+        SejongPortalProfile verified = registerInfo.requireVerifiedProfile();
 
         String imageUrl = uploadFile(file);
 
-        // 회원 생성
-        Member member = Member.createSejongMember(
-                registerInfo.getStudentId(),
+        Member member = Member.createSchoolVerifiedMember(
+                verified.studentId(), verified.name(), verified.department(),
                 command,
                 bCryptPasswordEncoder.encode(UUID.randomUUID().toString()),
                 imageUrl

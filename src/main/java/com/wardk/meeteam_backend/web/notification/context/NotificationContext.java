@@ -38,7 +38,7 @@ public class NotificationContext {
                 .actorId(event.getActorId())
                 .applicationId(event.getApplicationId())
                 .projectName(project != null ? project.getName() : null)
-                .actorName(actor != null ? actor.getRealName() : null)
+                .actorName(actor != null ? actor.getPublicName() : null)
                 .occurredAt(LocalDate.now())
                 .build();
     }

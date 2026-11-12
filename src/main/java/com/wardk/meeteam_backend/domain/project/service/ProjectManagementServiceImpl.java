@@ -81,7 +81,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
     private TeamManagementResponse.TeamMemberInfo toTeamMemberInfo(ProjectMember pm) {
         return TeamManagementResponse.TeamMemberInfo.builder()
                 .memberId(pm.getMember().getId())
-                .name(pm.getMember().getRealName())
+                .name(pm.getMember().getPublicName())
                 .profileImageUrl(pm.getMember().getStoreFileName())
                 .jobFieldName(pm.getJobPosition().getJobField().getName())
                 .jobPositionName(pm.getJobPosition().getName())
@@ -114,7 +114,7 @@ public class ProjectManagementServiceImpl implements ProjectManagementService {
         ProjectMember projectMember = projectMemberRepository.findByProjectIdAndMemberId(projectId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_MEMBER_NOT_FOUND));
 
-        String expelledMemberName = projectMember.getMember().getRealName();
+        String expelledMemberName = projectMember.getMember().getPublicName();
         Long jobPositionId = projectMember.getJobPosition().getId();
 
         // 4단계: 멤버 삭제
