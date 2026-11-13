@@ -29,6 +29,10 @@ public class MemberDetailResponse {
     @Schema(description = "이름")
     private final String name;
 
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS)
+    @Schema(description = "학교에서 확인한 학과. 저장된 정보가 없으면 null", nullable = true)
+    private final String department;
+
     @Schema(description = "나이", example = "23")
     private final Integer age;
 
@@ -100,6 +104,7 @@ public class MemberDetailResponse {
                 .memberId(member.getId())
                 .profileImageUrl(member.getStoreFileName())
                 .name(member.getPublicName())
+                .department(member.getDepartment())
                 .age(age)
                 .gender(member.getGender())
                 .representativePosition(representativePosition)

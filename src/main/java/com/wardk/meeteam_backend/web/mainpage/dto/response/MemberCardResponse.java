@@ -23,6 +23,10 @@ public record MemberCardResponse(
         @Schema(description = "회원 이름")
         String name,
 
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS)
+        @Schema(description = "학교에서 확인한 학과. 저장된 정보가 없으면 null", nullable = true)
+        String department,
+
         @Schema(description = "참여중인 프로젝트 수")
         Integer projectCount,
 
@@ -67,6 +71,7 @@ public record MemberCardResponse(
                 member.getStoreFileName(),
                 jobFieldName,
                 member.getPublicName(),
+                member.getDepartment(),
                 (int) member.getProjectMembers().stream()
                 .filter(pm -> pm.getProject() != null && pm.getProject().isPubliclyVisible()).count(),
                 techStacks
