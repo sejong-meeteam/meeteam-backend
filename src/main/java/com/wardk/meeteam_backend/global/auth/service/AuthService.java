@@ -110,11 +110,27 @@ public class AuthService {
         // The lookup chooses the required school operation; it never authorizes login by itself.
         var existing = memberRepository.findByStudentIdAndDeletedAtIsNull(command.studentId());
         if (existing.isPresent() || memberRepository.existsByStudentIdAndAdminWithdrawnTrue(command.studentId())) {
-            // Existing members keep login-only verification and are not renamed or migrated implicitly.
-            sejongPortalClient.authenticate(command.studentId(), command.password());
+            Member candidate = existing.orElse(null);
+            boolean supplementDepartment = candidate != null && candidate.needsSchoolDepartment()
+                    && !candidate.isAdminWithdrawn() && !candidate.isSuspended() && !candidate.isDeleted()
+                    && !candidate.isLocalAdminAccount();
+            SejongPortalProfile optionalProfile = null;
+            if (supplementDepartment) {
+                // One authentication attempt. Profile failure can be ignored only by the client
+                // after an explicit credential-success reply, never by catching login failures here.
+                optionalProfile = sejongPortalClient.authenticateAndFetchOptionalProfile(command.studentId(), command.password());
+            } else {
+                sejongPortalClient.authenticate(command.studentId(), command.password());
+            }
             requireNotAdministrativelyWithdrawn(command.studentId());
             Member member = existing.orElseThrow(() -> new CustomException(ErrorCode.SEJONG_PORTAL_ERROR));
             requireActiveLogin(member);
+            if (optionalProfile != null) {
+                if (!command.studentId().equals(optionalProfile.studentId())) {
+                    throw new CustomException(ErrorCode.SEJONG_PORTAL_ERROR);
+                }
+                member.supplementSchoolDepartment(optionalProfile);
+            }
             member.recordLogin(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
             return SejongLoginResult.existingMember(jwtUtil.createAccessToken(member), jwtUtil.createRefreshToken(member));
         }

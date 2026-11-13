@@ -121,7 +121,22 @@ public class SejongPortalClient implements AutoCloseable {
         return withSession(studentId, password, true);
     }
 
+    /**
+     * Existing members may supplement a missing department. A null result means credentials
+     * were explicitly accepted (OK) but profile retrieval failed. Authentication failures,
+     * ambiguous replies and unproven UNKNOWN replies still throw; no password retry occurs.
+     */
+    public SejongPortalProfile authenticateAndFetchOptionalProfile(String studentId, String password) {
+        return withSession(studentId, password, true, true);
+    }
+
     private SejongPortalProfile withSession(String studentId, String password, boolean fetchProfile) {
+        return withSession(studentId, password, fetchProfile, false);
+    }
+
+    private SejongPortalProfile withSession(String studentId, String password, boolean fetchProfile,
+                                           boolean profileOptionalAfterAuthentication) {
+        boolean credentialsAccepted = false;
         BasicCookieStore cookies = new BasicCookieStore();
         HttpClientContext context = HttpClientContext.create();
         context.setCookieStore(cookies);
@@ -141,6 +156,14 @@ public class SejongPortalClient implements AutoCloseable {
             PortalLoginResult.Status loginResult = PortalLoginResult.parse(performLogin(studentId, password, context, fetchProfile));
             trace("LOGIN_RESULT_" + loginResult.name());
             validateLoginResponse(loginResult, fetchProfile);
+            credentialsAccepted = loginResult == PortalLoginResult.Status.OK;
+            if (profileOptionalAfterAuthentication) {
+                // Bound best-effort enrichment without weakening TLS, cookies or identity checks.
+                context.setRequestConfig(RequestConfig.copy(requestConfig())
+                        .setConnectTimeout(Timeout.ofSeconds(5))
+                        .setConnectionRequestTimeout(Timeout.ofSeconds(5))
+                        .setResponseTimeout(Timeout.ofSeconds(5)).build());
+            }
             trace(loginResult == PortalLoginResult.Status.OK ? "LOGIN_ACCEPTED" : "LOGIN_RESULT_UNCONFIRMED");
             if (!fetchProfile) return null;
             // Complete the public login page's same-host SSO-to-application handoff.
@@ -169,9 +192,17 @@ public class SejongPortalClient implements AutoCloseable {
             trace("PROFILE_VERIFIED");
             return profile;
         } catch (CustomException e) {
+            if (profileOptionalAfterAuthentication && credentialsAccepted) {
+                trace("OPTIONAL_PROFILE_UNAVAILABLE");
+                return null;
+            }
             trace("FAIL_" + e.getErrorCode().name());
             throw e;
         } catch (Exception e) {
+            if (profileOptionalAfterAuthentication && credentialsAccepted) {
+                trace("OPTIONAL_PROFILE_UNAVAILABLE");
+                return null;
+            }
             // Transport exceptions can contain request details. Never log them or portal response bodies.
             trace("FAIL_" + e.getClass().getSimpleName());
             throw new CustomException(ErrorCode.SEJONG_PORTAL_ERROR);

@@ -165,20 +165,79 @@ class SchoolAuthoritativeAuthServiceTest {
         verifyNoInteractions(codes, jwt);
     }
 
-    @Test void existingLegacyMemberOnlyAuthenticatesAndKeepsExistingIdentity() {
+    @Test void existingLegacyMemberSupplementsDepartmentButKeepsExistingIdentity() {
         Member member = Member.createSejongMember(ID, command(), "synthetic-hash", null);
+        member.updateNamePrivacy(true);
         when(members.findByStudentIdAndDeletedAtIsNull(ID)).thenReturn(Optional.of(member));
+        when(portal.authenticateAndFetchOptionalProfile(ID, PASSWORD))
+                .thenReturn(new SejongPortalProfile(ID, "School Name", "Computer Science"));
         var result = auth.sejongLogin(new SejongLoginCommand(ID, PASSWORD));
         assertThat(result.isNewMember()).isFalse();
         assertThat(result.getVerifiedProfile()).isNull();
         assertThat(result.getCode()).isNull();
         assertThat(member.getRealName()).isEqualTo("Client Spoof");
-        assertThat(member.getDepartment()).isNull();
+        assertThat(member.getDepartment()).isEqualTo("Computer Science");
         assertThat(member.isSchoolProfileVerified()).isFalse();
-        verify(portal).authenticate(ID, PASSWORD);
+        assertThat(member.isNamePrivate()).isTrue();
+        verify(portal).authenticateAndFetchOptionalProfile(ID, PASSWORD);
+        verify(portal, never()).authenticate(anyString(), anyString());
         verify(portal, never()).authenticateAndFetchProfile(anyString(), anyString());
         verifyNoInteractions(codes);
         verify(members, never()).save(any());
+    }
+
+    @Test void failedOptionalProfileStillAllowsExplicitlyAuthenticatedExistingLogin() {
+        Member member = Member.createSejongMember(ID, command(), "synthetic-hash", null);
+        when(members.findByStudentIdAndDeletedAtIsNull(ID)).thenReturn(Optional.of(member));
+        var result = auth.sejongLogin(new SejongLoginCommand(ID, PASSWORD));
+        assertThat(result.isNewMember()).isFalse();
+        assertThat(member.getDepartment()).isNull();
+        verify(portal).authenticateAndFetchOptionalProfile(ID, PASSWORD);
+        verify(jwt).createAccessToken(member);
+        verify(jwt).createRefreshToken(member);
+        verify(portal, never()).authenticate(anyString(), anyString());
+    }
+
+    @Test void failedCredentialsWhileSupplementingCannotIssueTokens() {
+        Member member = Member.createSejongMember(ID, command(), "synthetic-hash", null);
+        when(members.findByStudentIdAndDeletedAtIsNull(ID)).thenReturn(Optional.of(member));
+        when(portal.authenticateAndFetchOptionalProfile(ID, PASSWORD))
+                .thenThrow(new CustomException(ErrorCode.SEJONG_LOGIN_FAILED));
+        assertThatThrownBy(() -> auth.sejongLogin(new SejongLoginCommand(ID, PASSWORD)))
+                .isInstanceOf(CustomException.class);
+        verifyNoInteractions(jwt, codes);
+        verify(portal, never()).authenticate(anyString(), anyString());
+    }
+
+    @Test void existingStoredDepartmentIsNotOverwrittenOrFetchedAgain() {
+        Member member = Member.createSchoolVerifiedMember(ID, "School Name", "Existing Department", command(), "synthetic-hash", null);
+        when(members.findByStudentIdAndDeletedAtIsNull(ID)).thenReturn(Optional.of(member));
+        auth.sejongLogin(new SejongLoginCommand(ID, PASSWORD));
+        assertThat(member.getDepartment()).isEqualTo("Existing Department");
+        verify(portal).authenticate(ID, PASSWORD);
+        verify(portal, never()).authenticateAndFetchOptionalProfile(anyString(), anyString());
+    }
+
+    @Test void wrongIdentityFromEnrichmentCannotBeStoredOrIssueTokens() {
+        Member member = Member.createSejongMember(ID, command(), "synthetic-hash", null);
+        when(members.findByStudentIdAndDeletedAtIsNull(ID)).thenReturn(Optional.of(member));
+        when(portal.authenticateAndFetchOptionalProfile(ID, PASSWORD))
+                .thenReturn(new SejongPortalProfile("20269999", "Other Name", "Other Department"));
+        assertThatThrownBy(() -> auth.sejongLogin(new SejongLoginCommand(ID, PASSWORD)))
+                .isInstanceOf(CustomException.class);
+        assertThat(member.getDepartment()).isNull();
+        verifyNoInteractions(jwt, codes);
+    }
+
+    @Test void suspendedExistingMemberDoesNotFetchSchoolProfile() {
+        Member member = Member.createSejongMember(ID, command(), "synthetic-hash", null);
+        member.suspend(null, "synthetic", java.time.LocalDateTime.now());
+        when(members.findByStudentIdAndDeletedAtIsNull(ID)).thenReturn(Optional.of(member));
+        assertThatThrownBy(() -> auth.sejongLogin(new SejongLoginCommand(ID, PASSWORD)))
+                .isInstanceOf(CustomException.class);
+        verify(portal).authenticate(ID, PASSWORD);
+        verify(portal, never()).authenticateAndFetchOptionalProfile(anyString(), anyString());
+        verifyNoInteractions(jwt, codes);
     }
 
     @Test void forcedWithdrawalAuthenticatesOnlyThenRejectsWithoutProfileFetch() {

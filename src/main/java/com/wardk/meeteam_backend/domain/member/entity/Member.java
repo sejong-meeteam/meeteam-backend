@@ -260,6 +260,20 @@ public class Member extends BaseEntity {
                 .build();
     }
 
+    public boolean needsSchoolDepartment() {
+        return studentId != null && (department == null || department.isBlank());
+    }
+
+    /** Supplement only missing school data; never rename or reclassify a legacy member. */
+    public void supplementSchoolDepartment(com.wardk.meeteam_backend.global.auth.client.SejongPortalProfile profile) {
+        if (profile == null) return;
+        if (!java.util.Objects.equals(studentId, profile.studentId())) {
+            throw new com.wardk.meeteam_backend.global.exception.CustomException(
+                    com.wardk.meeteam_backend.global.response.ErrorCode.SEJONG_PORTAL_ERROR);
+        }
+        if (needsSchoolDepartment()) this.department = profile.department();
+    }
+
     public boolean isLocalAdminAccount() {
         return "local-admin".equals(provider);
     }
