@@ -46,7 +46,7 @@
 | `PUT /api/v1/members/me` | multipart `memberInfo`의 `jobPositionIds: number[]`, `techStacks: [{id, displayOrder}]`, 선택 파일 `profileImage` |
 | `POST /api/v1/projects` | `recruitments: [{jobFieldCode, jobPositionCode, recruitmentCount, techStackIds: number[]}]` |
 | `PUT /api/v1/projects/{projectId}` | 위 모집분야 형태에 기존 항목의 `recruitmentStateId` 포함 (신규는 null) |
-| `POST /api/v1/projects/{projectId}/application` | `{jobPositionCode, motivation}` (기술 배열 없음) |
+| `POST /api/v1/projects/{projectId}/application` | `{jobPositionCode, motivation}` (기술 배열 없음). `motivation`은 공백이 아닌 10~700자 |
 
 `displayOrder`는 1 이상입니다. 회원 상세·내 정보 응답의 `skills`는 기술 **이름**의 평면 문자열 배열이며 요청에 그대로 쓰는 문자열 배열이 아닙니다. 사용되지 않는 과거 DTO의 `skills` 필드를 현재 컨트롤러 계약으로 간주하지 않습니다.
 
@@ -89,6 +89,8 @@
 | `ACCEPTED` | 승인됨 |
 | `REJECTED` | 거절됨 |
 | `CANCELLED` | 취소됨 |
+
+지원 요청의 `motivation`은 필수이며 10자 이상 700자 이하입니다. 공백만 보내거나 길이를 벗어나면 `400` / `COMMON400`과 "지원 동기를 입력해 주세요." 또는 "지원 동기는 10자 이상 700자 이하로 입력해 주세요."를 돌려줍니다. 길이는 Java 문자열 길이(UTF-16) 기준이라 한글·영문은 한 글자를 1로 셉니다.
 
 승인/거절 요청 필드는 `applicationStatus`가 아니라 `decision`이며, 의도된 요청은 `{ "decision": "ACCEPTED" }` 또는 `REJECTED`입니다. 취소는 `DELETE /api/v1/members/me/applications/{applicationId}`를 사용합니다.
 
@@ -165,5 +167,5 @@
 - `web/auth/dto/sejong/SejongRegisterRequest.java`, `web/auth/dto/register/MemberJobPositionRequest.java`, `TechStackOrderRequest.java`
 - `web/member/dto/request/MemberProfileUpdateRequest.java`, `web/member/controller/MemberController.java`
 - `web/project/dto/request/ProjectPostRequest.java`, `ProjectEditRequest.java`, `ProjectRecruitRequest.java`, `RecruitmentEditRequest.java`
-- `web/application/controller/ApplicationController.java`, `web/application/dto/response/ProjectApplicationListResponse.java`
+- `web/application/controller/ApplicationController.java`, `web/application/dto/request/ApplicationRequest.java`, `web/application/dto/response/ProjectApplicationListResponse.java`
 - `web/job/dto/response/JobOptionResponse.java`, `JobFieldOptionResponse.java` (Java 경로 기준 루트: `src/main/java/com/wardk/meeteam_backend/`)
