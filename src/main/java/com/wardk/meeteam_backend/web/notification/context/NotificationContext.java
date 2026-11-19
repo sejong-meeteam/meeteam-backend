@@ -3,6 +3,7 @@ package com.wardk.meeteam_backend.web.notification.context;
 import com.wardk.meeteam_backend.domain.member.entity.Member;
 import com.wardk.meeteam_backend.domain.notification.NotificationEvent;
 import com.wardk.meeteam_backend.domain.project.entity.Project;
+import com.wardk.meeteam_backend.domain.proposal.entity.ProjectProposal;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -26,12 +27,17 @@ public class NotificationContext {
     private final String projectName;
     private final String actorName;
 
+    // PROJECT_PROPOSAL_RECEIVED 전용
+    private final String jobFieldName;
+    private final String jobPositionName;
+    private final String proposalMessage;
+
     private final LocalDate occurredAt;
 
     /**
      * NotificationEvent와 조회한 엔티티로부터 컨텍스트 생성
      */
-    public static NotificationContext of(NotificationEvent event, Project project, Member actor) {
+    public static NotificationContext of(NotificationEvent event, Project project, Member actor, ProjectProposal proposal) {
         return NotificationContext.builder()
                 .receiverId(event.getReceiverId())
                 .projectId(event.getProjectId())
@@ -39,6 +45,9 @@ public class NotificationContext {
                 .applicationId(event.getApplicationId())
                 .projectName(project != null ? project.getName() : null)
                 .actorName(actor != null ? actor.getPublicName() : null)
+                .jobFieldName(proposal != null ? proposal.getJobPosition().getJobField().getName() : null)
+                .jobPositionName(proposal != null ? proposal.getJobPosition().getName() : null)
+                .proposalMessage(proposal != null && !proposal.getMessage().isBlank() ? proposal.getMessage() : null)
                 .occurredAt(LocalDate.now())
                 .build();
     }

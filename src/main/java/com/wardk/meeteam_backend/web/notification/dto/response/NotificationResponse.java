@@ -33,7 +33,7 @@ public class NotificationResponse {
         this.isRead = notification.isRead();
         this.createdAt = LocalDate.from(notification.getCreatedAt());
         this.applicationId = notification.getApplicationId();
-        this.payload = new NotificationPayload(notification.getProject(), notification.getReceiver());
+        this.payload = new NotificationPayload(notification.getProject(), notification.getReceiver(), notification.getProposal());
     }
 
 }

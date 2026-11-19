@@ -9,6 +9,8 @@ import com.wardk.meeteam_backend.domain.notification.entity.NotificationType;
 import com.wardk.meeteam_backend.domain.notification.repository.EmitterRepository;
 import com.wardk.meeteam_backend.domain.project.entity.Project;
 import com.wardk.meeteam_backend.domain.project.repository.ProjectRepository;
+import com.wardk.meeteam_backend.domain.proposal.entity.ProjectProposal;
+import com.wardk.meeteam_backend.domain.proposal.repository.ProjectProposalRepository;
 import com.wardk.meeteam_backend.global.exception.CustomException;
 import com.wardk.meeteam_backend.global.response.ErrorCode;
 import com.wardk.meeteam_backend.web.notification.SseEnvelope;
@@ -40,6 +42,7 @@ public class SSENotificationService {
     private final EmitterRepository emitterRepository;
     private final MemberRepository memberRepository;
     private final ProjectRepository projectRepository;
+    private final ProjectProposalRepository proposalRepository;
     private final NotificationPayloadFactory payloadFactory;
     private final SseEventPublisher ssePublisher;
 
@@ -58,9 +61,11 @@ public class SSENotificationService {
         Member receiver = findMemberOrThrow(event.getReceiverId(), "수신자");
         Project project = findProjectOrThrow(event.getProjectId());
         Member actor = findActorIfRequired(type, event.getActorId());
+        ProjectProposal proposal = event.getProposalId() == null ? null
+                : proposalRepository.findById(event.getProposalId()).orElse(null);
 
         // 3. Context 생성 (엔티티에서 필요한 데이터 추출)
-        NotificationContext context = NotificationContext.of(event, project, actor);
+        NotificationContext context = NotificationContext.of(event, project, actor, proposal);
 
         // 4. SSE 전송 (전송 실패가 저장 트랜잭션을 롤백시키지 않도록 예외 처리)
         // 주의: Notification 엔티티 저장은 메인 비즈니스 로직(ProjectApplicationService)에서 이미 수행됨

@@ -16,7 +16,7 @@ public class NotificationEvent {
     private Long actorId;            // 행위자(지원자) - 없으면 null
     private NotificationType type;      // 예: PROJECT_APPLY
     private Long applicationId;
-    // 메시지
+    private Long proposalId;
 
 
     public NotificationEvent(Long receiverId, Long projectId, Long actorId, NotificationType type, Long applicationId) {
@@ -33,5 +33,11 @@ public class NotificationEvent {
         this.projectId = projectId;
         this.actorId = actorId;
         this.type = type;
+    }
+
+    public static NotificationEvent proposalReceived(Long receiverId, Long projectId, Long proposerId, Long proposalId) {
+        NotificationEvent event = new NotificationEvent(receiverId, projectId, proposerId, NotificationType.PROJECT_PROPOSAL_RECEIVED);
+        event.proposalId = proposalId;
+        return event;
     }
 }
