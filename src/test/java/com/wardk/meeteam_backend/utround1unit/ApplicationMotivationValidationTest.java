@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 
 /** Synthetic DTO/HTTP requests only. The service is mocked; no DB. */
 class ApplicationMotivationValidationTest {
-    private static final String LENGTH_MESSAGE = "지원 동기는 10자 이상 700자 이하로 입력해 주세요.";
+    private static final String LENGTH_MESSAGE = "지원 메시지는 10자 이상 700자 이하로 입력해 주세요.";
     private LocalValidatorFactoryBean validator;
 
     @BeforeEach

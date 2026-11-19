@@ -15,8 +15,8 @@ public record ApplicationRequest(
         @Schema(description = "지원할 포지션 코드", example = "WEB_FRONTEND")
         JobPositionCode jobPositionCode,
 
-        @NotBlank(message = "지원 동기를 입력해 주세요.")
-        @Size(min = 10, max = 700, message = "지원 동기는 10자 이상 700자 이하로 입력해 주세요.")
+        @NotBlank(message = "지원 메시지를 입력해 주세요.")
+        @Size(min = 10, max = 700, message = "지원 메시지는 10자 이상 700자 이하로 입력해 주세요.")
         @Schema(description = "지원 사유 및 자기소개 (10~700자)", example = "이 프로젝트에 참여하고 싶습니다. 저는 3년차 프론트엔드 개발자입니다.")
         String motivation
 ) {
