@@ -352,6 +352,20 @@ public class Project extends BaseEntity {
         return recruitmentStatus.equals(Recruitment.CLOSED);
     }
 
+    /** Recruiting, the deadline (if any) has not passed, and at least one position still has room. */
+    public boolean isRecruitingOn(LocalDate today) {
+        return isRecruiting()
+                && (endDate == null || !endDate.isBefore(today))
+                && recruitments.stream().anyMatch(recruitment -> !recruitment.isClosed());
+    }
+
+    public List<RecruitmentState> getOpenRecruitments() {
+        return recruitments.stream()
+                .filter(recruitment -> !recruitment.isClosed())
+                .sorted(java.util.Comparator.comparing(RecruitmentState::getId))
+                .toList();
+    }
+
     public boolean isSuspended() {
         return recruitmentStatus.equals(Recruitment.SUSPENDED);
     }

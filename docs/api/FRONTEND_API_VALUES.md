@@ -148,6 +148,77 @@
 
 범위를 벗어나면 기존 검증 오류와 같은 `400` / `COMMON400` 응답과 다음 메시지를 돌려줍니다: "주 예상 활동 시간은 1~40시간으로 입력해 주세요.", "협업 방식 메모는 최대 100자까지 입력 가능합니다."
 
+## 8. 프로젝트 합류 제안
+
+리더가 모집 중인 프로젝트와 열린 포지션을 골라 같은 학교 회원에게 합류를 제안합니다. 두 API 모두 로그인이 필요합니다. 오류 응답의 `message`는 사용자에게 그대로 보여줄 한국어 문장입니다.
+
+### `GET /api/v1/members/{memberId}/proposable-projects`
+
+내가 리더이고 공개 상태이며 모집 중(`RECRUITING`, 마감일 전, 정원이 남은 포지션 1개 이상)인 프로젝트 가운데 `{memberId}` 회원이 아직 팀원이 아닌 프로젝트를 돌려줍니다. 없으면 `result: []`입니다.
+
+```json
+[
+  {
+    "projectId": 101,
+    "projectName": "캠퍼스 메이커스",
+    "openPositions": [{ "jobPositionId": 1, "jobFieldName": "프론트", "jobPositionName": "웹 프론트엔드" }],
+    "hasPendingProposal": false
+  }
+]
+```
+
+`hasPendingProposal`은 이 회원에게 보낸 `PENDING` 제안이 이미 있는지입니다.
+
+### `POST /api/v1/projects/{projectId}/proposals`
+
+요청은 `{ "memberId": 203, "jobPositionId": 1, "message": "..." }`입니다. `message`는 선택이며 앞뒤 공백을 지운 뒤 300자 이하여야 합니다. 비우거나 생략하면 빈 문자열로 저장합니다.
+
+```json
+{
+  "proposalId": 1,
+  "projectId": 101,
+  "memberId": 203,
+  "jobPositionId": 1,
+  "message": "기술 스택이 프로젝트와 잘 맞아서 제안드려요.",
+  "status": "PENDING",
+  "createdAt": "2026-11-19T13:20:00+09:00"
+}
+```
+
+`status`는 지금 `PENDING`만 있습니다. 검사 순서는 인증, 요청 검증, 프로젝트 존재, 리더 여부, 모집 중 여부, 받는 회원 존재, 본인 여부, 같은 학교, 이미 팀원, 포지션 모집 중, 중복, 일일 한도입니다.
+
+| HTTP | code | 상황 | message |
+|---|---|---|---|
+| 400 | `PROPOSAL400` | 요청 형식 오류 | `제안 내용을 확인해 주세요.` |
+| 400 | `PROPOSAL400` | `memberId` 누락·0 이하 | `제안할 회원을 확인해 주세요.` |
+| 400 | `PROPOSAL400` | `jobPositionId` 누락·0 이하 | `제안할 포지션을 선택해 주세요.` |
+| 400 | `PROPOSAL400` | 메시지 300자 초과 | `메시지는 300자 이내로 작성해 주세요.` |
+| 400 | `PROPOSAL400` | 나에게 제안 (두 API 공통) | `나에게는 제안을 보낼 수 없어요.` |
+| 403 | `PROPOSAL403` | 프로젝트 리더가 아님 | `프로젝트 리더만 제안을 보낼 수 있어요.` |
+| 403 | `PROPOSAL_DIFFERENT_UNIVERSITY` | 학교가 다르거나 학교 계정이 아님 (두 API 공통) | `같은 학교 회원에게만 제안할 수 있어요.` |
+| 404 | `PROJECT404` | 프로젝트 없음·숨김·삭제 | `프로젝트를 찾을 수 없습니다.` |
+| 404 | `MEMBER404` | 회원 없음·탈퇴·정지 (두 API 공통) | `회원을 찾을 수 없습니다.` |
+| 409 | `PROPOSAL_PROJECT_NOT_RECRUITING` | 모집 마감·중단, 마감일 지남, 열린 포지션 없음 | `모집 중인 프로젝트로만 제안할 수 있어요.` |
+| 409 | `PROPOSAL_POSITION_CLOSED` | 이 프로젝트에 없거나 정원이 찬 포지션 | `모집 중인 포지션을 선택해 주세요.` |
+| 409 | `PROPOSAL_ALREADY_MEMBER` | 이미 리더 또는 팀원 | `이미 프로젝트에 함께하고 있는 회원이에요.` |
+| 409 | `PROPOSAL_DUPLICATE` | 같은 프로젝트·회원 쌍의 `PENDING` 제안이 있음 | `이미 '{프로젝트명}' 프로젝트로 {공개 이름}님에게 보낸 제안이 있어요.` |
+| 429 | `PROPOSAL_RATE_LIMITED` | 최근 24시간 동안 20건 이상 보냄 | `제안은 하루 20건까지 보낼 수 있어요. 내일 다시 시도해 주세요.` |
+
+같은 학교는 가입 계정 이메일 도메인으로 판단합니다. 세종대는 `sju.ac.kr`, `sejong.ac.kr`입니다. 학교 계정이 아닌 회원끼리는 같은 학교로 보지 않습니다. 일일 한도는 `app.proposal.daily-limit` 설정값이며 기본값은 20입니다.
+
+### 알림 `PROJECT_PROPOSAL_RECEIVED`
+
+제안이 저장되면 같은 트랜잭션에서 받는 회원의 알림을 만들고, 커밋 후 SSE로 보냅니다. SSE 이벤트 이름은 type과 같습니다. SSE `data`와 알림 목록(`GET /api/v1/notifications`)의 `payload`에 아래 필드가 들어갑니다.
+
+| 필드 | 설명 |
+|---|---|
+| `projectId`, `projectName` | 제안한 프로젝트 |
+| `proposerId`, `proposerName` | 제안한 리더. 이름은 이름 비공개 설정을 따른 공개 이름 |
+| `jobFieldName`, `jobPositionName` | 제안한 포지션의 직군·직무 표시 이름 |
+| `proposalMessage` | 리더가 쓴 메시지. 비어 있으면 필드를 생략 |
+
+알림의 `message` 필드는 보내지 않습니다. 다른 알림 타입의 목록 `payload`는 기존 필드(`projectId`, `projectName`, `receiverId`, `receiverName`)만 그대로 유지합니다.
+
 ## 요약
 
 | 대상 | 타입 / 개수 |
@@ -160,6 +231,8 @@
 | 지원 상태 | 4개, 결정 요청은 2개만 허용, 목록 필터는 3개 |
 | 직군 코드 | 8개, 회원 검색은 직군 ID |
 | 회의 방식 | 3개, 모두 선택 항목 |
+| 제안 상태 | `PENDING` 1개 |
+| 알림 타입 추가 | `PROJECT_PROPOSAL_RECEIVED` |
 
 ## 코드 근거
 
@@ -168,4 +241,5 @@
 - `web/member/dto/request/MemberProfileUpdateRequest.java`, `web/member/controller/MemberController.java`
 - `web/project/dto/request/ProjectPostRequest.java`, `ProjectEditRequest.java`, `ProjectRecruitRequest.java`, `RecruitmentEditRequest.java`
 - `web/application/controller/ApplicationController.java`, `web/application/dto/request/ApplicationRequest.java`, `web/application/dto/response/ProjectApplicationListResponse.java`
-- `web/job/dto/response/JobOptionResponse.java`, `JobFieldOptionResponse.java` (Java 경로 기준 루트: `src/main/java/com/wardk/meeteam_backend/`)
+- `web/job/dto/response/JobOptionResponse.java`, `JobFieldOptionResponse.java`
+- `web/proposal/controller/ProposalController.java`, `web/proposal/dto/`, `domain/proposal/service/ProjectProposalService.java`, `web/notification/payload/ProjectProposalReceivedPayload.java` (Java 경로 기준 루트: `src/main/java/com/wardk/meeteam_backend/`)

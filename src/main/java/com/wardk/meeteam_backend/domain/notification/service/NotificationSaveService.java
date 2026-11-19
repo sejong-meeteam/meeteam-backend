@@ -5,6 +5,7 @@ import com.wardk.meeteam_backend.domain.notification.entity.Notification;
 import com.wardk.meeteam_backend.domain.notification.entity.NotificationType;
 import com.wardk.meeteam_backend.domain.notification.repository.NotificationRepository;
 import com.wardk.meeteam_backend.domain.project.entity.Project;
+import com.wardk.meeteam_backend.domain.proposal.entity.ProjectProposal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -126,5 +127,17 @@ public class NotificationSaveService {
                               Long projectCreatorId, Long applicationId) {
         save(applicant, project, projectCreatorId,
                 NotificationType.PROJECT_REJECT, applicationId);
+    }
+
+    /** 제안받은 회원에게 프로젝트 합류 제안 알림 저장 */
+    public Notification saveForProposal(ProjectProposal proposal) {
+        return notificationRepository.save(Notification.builder()
+                .receiver(proposal.getReceiver())
+                .project(proposal.getProject())
+                .actorId(proposal.getProposer().getId())
+                .type(NotificationType.PROJECT_PROPOSAL_RECEIVED)
+                .proposal(proposal)
+                .isRead(false)
+                .build());
     }
 }

@@ -97,6 +97,17 @@ public enum ErrorCode {
     APPLICATION_CANCEL_FORBIDDEN(HttpStatus.FORBIDDEN, "PROJECT_APPLICATION403", "본인의 지원서만 취소할 수 있습니다."),
     APPLICATION_CANCEL_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "PROJECT_APPLICATION400", "대기 중인 지원서만 취소할 수 있습니다."),
 
+    // PROJECT PROPOSAL (message는 사용자에게 그대로 노출된다)
+    PROPOSAL_INVALID_REQUEST(HttpStatus.BAD_REQUEST, "PROPOSAL400", "제안 내용을 확인해 주세요."),
+    PROPOSAL_SELF(HttpStatus.BAD_REQUEST, "PROPOSAL400", "나에게는 제안을 보낼 수 없어요."),
+    PROPOSAL_NOT_LEADER(HttpStatus.FORBIDDEN, "PROPOSAL403", "프로젝트 리더만 제안을 보낼 수 있어요."),
+    PROPOSAL_DIFFERENT_UNIVERSITY(HttpStatus.FORBIDDEN, "PROPOSAL_DIFFERENT_UNIVERSITY", "같은 학교 회원에게만 제안할 수 있어요."),
+    PROPOSAL_PROJECT_NOT_RECRUITING(HttpStatus.CONFLICT, "PROPOSAL_PROJECT_NOT_RECRUITING", "모집 중인 프로젝트로만 제안할 수 있어요."),
+    PROPOSAL_POSITION_CLOSED(HttpStatus.CONFLICT, "PROPOSAL_POSITION_CLOSED", "모집 중인 포지션을 선택해 주세요."),
+    PROPOSAL_ALREADY_MEMBER(HttpStatus.CONFLICT, "PROPOSAL_ALREADY_MEMBER", "이미 프로젝트에 함께하고 있는 회원이에요."),
+    PROPOSAL_DUPLICATE(HttpStatus.CONFLICT, "PROPOSAL_DUPLICATE", "이미 이 프로젝트로 보낸 제안이 있어요."),
+    PROPOSAL_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "PROPOSAL_RATE_LIMITED", "제안은 하루에 보낼 수 있는 건수를 넘었어요. 내일 다시 시도해 주세요."),
+
     // MEMBER SKILL
     SKILL_NOT_FOUND(HttpStatus.NOT_FOUND, "SKILL404", "해당 기술스택이 존재하지 않습니다."),
 

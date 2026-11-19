@@ -9,7 +9,8 @@ public enum NotificationType {
     PROJECT_END(false),
     GITHUB_REPO_INVITED(false),
     GITHUB_REVIEW_REQUESTED(false),
-    GITHUB_PR_MERGED(false);
+    GITHUB_PR_MERGED(false),
+    PROJECT_PROPOSAL_RECEIVED(true); // actor = 제안한 리더
 
 
     private final boolean requiresActor;
