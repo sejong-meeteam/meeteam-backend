@@ -26,7 +26,7 @@ public record ProjectSearchRequest(
         @Schema(description = "플랫폼 카테고리", example = "WEB")
         PlatformCategory platformCategory,
 
-        @Schema(description = "직군 (PLANNING, DESIGN, FRONTEND, BACKEND, AI, INFRA_OPERATION)", example = "BACKEND")
+        @Schema(description = "직군 (PLANNING, DESIGN, FRONTEND, BACKEND, AI, INFRA_OPERATION, MARKETING, DATA)", example = "BACKEND")
         JobFieldCode jobField,
 
         @Schema(description = "회의 방식 (ONLINE을 고르면 HYBRID도 함께 반환)", example = "ONLINE")

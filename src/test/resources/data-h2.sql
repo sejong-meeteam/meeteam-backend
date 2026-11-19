@@ -9,7 +9,9 @@ INSERT INTO job_field (job_field_id, code, name) VALUES
     (3, 'FRONTEND', '프론트'),
     (4, 'BACKEND', '백엔드'),
     (5, 'AI', 'AI'),
-    (6, 'INFRA_OPERATION', '인프라/운영');
+    (6, 'INFRA_OPERATION', '인프라/운영'),
+    (7, 'MARKETING', '마케팅'),
+    (8, 'DATA', '데이터');
 
 -- JobPosition (직무)
 -- 기획
@@ -51,6 +53,18 @@ INSERT INTO job_position (job_position_id, job_field_id, code, name) VALUES
     (20, 6, 'QA', 'QA'),
     (21, 6, 'CLOUD_ENGINEER', 'Cloud 엔지니어');
 
+-- 마케팅
+INSERT INTO job_position (job_position_id, job_field_id, code, name) VALUES
+    (22, 7, 'PERFORMANCE_MARKETER', '퍼포먼스 마케터'),
+    (23, 7, 'CONTENT_MARKETER', '콘텐츠 마케터'),
+    (24, 7, 'BRAND_MARKETER', '브랜드 마케터');
+
+-- 데이터
+INSERT INTO job_position (job_position_id, job_field_id, code, name) VALUES
+    (25, 8, 'DATA_ANALYST', '데이터 분석가'),
+    (26, 8, 'DATA_ENGINEER', '데이터 엔지니어'),
+    (27, 8, 'DATA_SCIENTIST', '데이터 사이언티스트');
+
 -- =====================================================
 -- TechStack (기술 스택)
 -- =====================================================
@@ -81,7 +95,11 @@ INSERT INTO tech_stack (tech_stack_id, name) VALUES
     (63, 'Hugging Face'), (64, 'OpenAI API'), (65, 'LangChain'), (66, 'RAG'), (67, 'Vector DB'),
     (68, 'MLflow'), (69, 'Airflow'), (70, 'Kubernetes'),
     -- 인프라/운영
-    (71, 'Prometheus/Grafana'), (72, 'Postman'), (73, 'Playwright'), (74, 'Selenium'), (75, 'Cypress');
+    (71, 'Prometheus/Grafana'), (72, 'Postman'), (73, 'Playwright'), (74, 'Selenium'), (75, 'Cypress'),
+    -- 마케팅
+    (76, 'Meta Ads'), (77, 'Google Ads'), (78, 'Canva'),
+    -- 데이터
+    (79, 'R'), (80, 'SQL'), (81, 'Tableau'), (82, 'Excel');
 
 -- =====================================================
 -- JobFieldTechStack (직군-기술스택 연결)
@@ -124,3 +142,10 @@ INSERT INTO job_field_tech_stack (job_field_id, tech_stack_id) VALUES
     (6, 49), (6, 71), (6, 72),
     (6, 2), (6, 73), (6, 74), (6, 75);
 
+-- 마케팅 (job_field_id = 7)
+INSERT INTO job_field_tech_stack (job_field_id, tech_stack_id) VALUES
+    (7, 4), (7, 76), (7, 77), (7, 1), (7, 3), (7, 78);
+
+-- 데이터 (job_field_id = 8)
+INSERT INTO job_field_tech_stack (job_field_id, tech_stack_id) VALUES
+    (8, 31), (8, 79), (8, 80), (8, 58), (8, 81), (8, 82);

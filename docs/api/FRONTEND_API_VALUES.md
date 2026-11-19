@@ -29,6 +29,12 @@
 | `DEVOPS_ARCHITECT` | `INFRA_OPERATION` | DevOps 엔지니어/아키텍처 |
 | `QA` | `INFRA_OPERATION` | QA |
 | `CLOUD_ENGINEER` | `INFRA_OPERATION` | Cloud 엔지니어 |
+| `PERFORMANCE_MARKETER` | `MARKETING` | 퍼포먼스 마케터 |
+| `CONTENT_MARKETER` | `MARKETING` | 콘텐츠 마케터 |
+| `BRAND_MARKETER` | `MARKETING` | 브랜드 마케터 |
+| `DATA_ANALYST` | `DATA` | 데이터 분석가 |
+| `DATA_ENGINEER` | `DATA` | 데이터 엔지니어 |
+| `DATA_SCIENTIST` | `DATA` | 데이터 사이언티스트 |
 
 ## 2. 기술 스택: 요청 ID와 응답 이름 구분
 
@@ -44,9 +50,11 @@
 
 `displayOrder`는 1 이상입니다. 회원 상세·내 정보 응답의 `skills`는 기술 **이름**의 평면 문자열 배열이며 요청에 그대로 쓰는 문자열 배열이 아닙니다. 사용되지 않는 과거 DTO의 `skills` 필드를 현재 컨트롤러 계약으로 간주하지 않습니다.
 
-### SQL seed의 기술 이름 (75개)
+### SQL seed의 기술 이름 (82개)
 
-`Notion`, `Jira`, `Figma`, `Google Analytics`, `Zeplin`, `After Effects`, `Premiere`, `Illustrator`, `Photoshop`, `React.js`, `TypeScript`, `Next.js`, `Vue.js`, `Angular`, `Zustand`, `Redux`, `TailwindCSS`, `Swift`, `SwiftUI`, `UIKit`, `Firebase`, `Kotlin`, `Jetpack Compose`, `Coroutine`, `Hilt`, `React Native`, `Expo`, `Dart`, `Flutter`, `Java`, `Python`, `Ruby on Rails`, `Spring Boot`, `Spring WebFlux`, `NestJs`, `Node.js`, `JPA`, `QueryDSL`, `MySQL`, `PostgreSQL`, `MariaDB`, `MongoDB`, `Redis`, `ElasticSearch`, `Docker`, `AWS`, `Nginx`, `Linux`, `GitHub Actions`, `GitLab CI/CD`, `Jenkins`, `Prometheus`, `Grafana`, `WebSocket`, `Kafka`, `RabbitMQ`, `NumPy`, `Pandas`, `Scikit-learn`, `PyTorch`, `TensorFlow`, `CUDA`, `Hugging Face`, `OpenAI API`, `LangChain`, `RAG`, `Vector DB`, `MLflow`, `Airflow`, `Kubernetes`, `Prometheus/Grafana`, `Postman`, `Playwright`, `Selenium`, `Cypress`
+`Notion`, `Jira`, `Figma`, `Google Analytics`, `Zeplin`, `After Effects`, `Premiere`, `Illustrator`, `Photoshop`, `React.js`, `TypeScript`, `Next.js`, `Vue.js`, `Angular`, `Zustand`, `Redux`, `TailwindCSS`, `Swift`, `SwiftUI`, `UIKit`, `Firebase`, `Kotlin`, `Jetpack Compose`, `Coroutine`, `Hilt`, `React Native`, `Expo`, `Dart`, `Flutter`, `Java`, `Python`, `Ruby on Rails`, `Spring Boot`, `Spring WebFlux`, `NestJs`, `Node.js`, `JPA`, `QueryDSL`, `MySQL`, `PostgreSQL`, `MariaDB`, `MongoDB`, `Redis`, `ElasticSearch`, `Docker`, `AWS`, `Nginx`, `Linux`, `GitHub Actions`, `GitLab CI/CD`, `Jenkins`, `Prometheus`, `Grafana`, `WebSocket`, `Kafka`, `RabbitMQ`, `NumPy`, `Pandas`, `Scikit-learn`, `PyTorch`, `TensorFlow`, `CUDA`, `Hugging Face`, `OpenAI API`, `LangChain`, `RAG`, `Vector DB`, `MLflow`, `Airflow`, `Kubernetes`, `Prometheus/Grafana`, `Postman`, `Playwright`, `Selenium`, `Cypress`, `Meta Ads`, `Google Ads`, `Canva`, `R`, `SQL`, `Tableau`, `Excel`
+
+마케팅 직군의 GA4는 별도 이름 없이 기존 `Google Analytics`를 사용합니다.
 
 출처: `src/main/resources/db/seed/job-seed.sql`. 이 목록은 SQL에 정의된 초기값이며 운영 DB의 현재 전체 목록/자동 초기화 실행을 보장하지 않습니다. 직군별 매핑은 [직군·기술 스택](../job-tech-stack.md)을 참고합니다. 철자도 seed 그대로 사용합니다 (`TailwindCSS`, `ElasticSearch`, `NestJs`, `AWS`, `Kafka`).
 
@@ -88,11 +96,11 @@
 
 ## 7. JobFieldCode (직군)
 
-`PLANNING`, `DESIGN`, `FRONTEND`, `BACKEND`, `AI`, `INFRA_OPERATION` (6개).
+`PLANNING`, `DESIGN`, `FRONTEND`, `BACKEND`, `AI`, `INFRA_OPERATION`, `MARKETING`(마케팅), `DATA`(데이터) (8개). `MARKETING`·`DATA`는 V9 적용 후 `GET /api/v1/jobs/options`에 자동으로 포함됩니다. 화면에 직군 코드를 하드코딩했다면 두 값을 추가해야 합니다.
 
 - 프로젝트 검색 `GET /api/v1/projects/search`는 `jobField` enum 필터입니다. 회의 방식 필터 `meetingMode`는 8절을 참고합니다.
 - 회원 검색 `GET /api/v1/members/search`는 `jobFieldId` (Long), `techStackNames` (문자열 목록), `name`을 받습니다. `jobField` enum 필터가 아닙니다.
-- 현재 jobs/options의 직군 객체에는 `code`, `name`만 있고 직군 ID는 없습니다. 회원 검색용 ID 확보 방법은 별도 계약 확인이 필요합니다. 직군 ID 1~6을 가정하지 않습니다.
+- 현재 jobs/options의 직군 객체에는 `code`, `name`만 있고 직군 ID는 없습니다. 회원 검색용 ID 확보 방법은 별도 계약 확인이 필요합니다. 직군 ID를 고정값으로 가정하지 않습니다.
 
 ## 8. 프로젝트 협업 방식 (선택 항목)
 
@@ -130,13 +138,13 @@
 
 | 대상 | 타입 / 개수 |
 |---|---|
-| 직무 코드 | JobPositionCode 21개 (프로필 수정은 ID 배열) |
-| 기술 | seed 75개, 요청은 ID / 표시 순서 객체 또는 ID 배열 |
+| 직무 코드 | JobPositionCode 27개 (프로필 수정은 ID 배열) |
+| 기술 | seed 82개, 요청은 ID / 표시 순서 객체 또는 ID 배열 |
 | 성별 | 2개 |
 | 프로젝트 카테고리 | 6개 |
 | 플랫폼 | 3개 |
 | 지원 상태 | 4개, 결정 요청 의도는 2개 |
-| 직군 코드 | 6개, 회원 검색은 직군 ID |
+| 직군 코드 | 8개, 회원 검색은 직군 ID |
 | 회의 방식 | 3개, 모두 선택 항목 |
 
 ## 코드 근거

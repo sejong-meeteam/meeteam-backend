@@ -16,7 +16,9 @@ public enum JobFieldCode {
     FRONTEND("프론트"),
     BACKEND("백엔드"),
     AI("AI"),
-    INFRA_OPERATION("인프라/운영");
+    INFRA_OPERATION("인프라/운영"),
+    MARKETING("마케팅"),
+    DATA("데이터");
 
     private final String displayName;
 }

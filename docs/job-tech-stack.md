@@ -96,9 +96,39 @@ Python, NumPy, Pandas, Scikit-learn, PyTorch, TensorFlow, CUDA, Hugging Face, Op
 ### 기술 스택 (TechStack)
 AWS, Docker, Kubernetes, Nginx, GitHub Actions, Prometheus/Grafana, Postman, Jira, Playwright, Selenium, Cypress
 
+---
+
+## 7. 마케팅 (MARKETING)
+
+### 직무 (JobPosition)
+| 코드 | 이름 |
+|------|------|
+| `PERFORMANCE_MARKETER` | 퍼포먼스 마케터 |
+| `CONTENT_MARKETER` | 콘텐츠 마케터 |
+| `BRAND_MARKETER` | 브랜드 마케터 |
+
+### 기술 스택 (TechStack)
+Google Analytics, Meta Ads, Google Ads, Notion, Figma, Canva
+
+GA4는 기존 `Google Analytics` 기술을 재사용합니다. 같은 도구가 두 이름으로 나뉘어 회원 기술 검색 결과가 갈라지지 않게 하기 위해서입니다.
+
+---
+
+## 8. 데이터 (DATA)
+
+### 직무 (JobPosition)
+| 코드 | 이름 |
+|------|------|
+| `DATA_ANALYST` | 데이터 분석가 |
+| `DATA_ENGINEER` | 데이터 엔지니어 |
+| `DATA_SCIENTIST` | 데이터 사이언티스트 |
+
+### 기술 스택 (TechStack)
+Python, R, SQL, Pandas, Tableau, Excel
+
 ## 데이터 기준과 사용 시 주의
 
-- 이 목록은 `src/main/resources/db/seed/job-seed.sql`의 직군별 매핑입니다. 기술은 직군끼리 중복될 수 있으며 고유 기술 seed는 75개입니다.
+- 이 목록은 `src/main/resources/db/seed/job-seed.sql`의 직군별 매핑입니다. 마케팅·데이터 직군은 기존 DB에 `V9__ut_round1_project_job_application.sql`로 같은 값을 추가하며, `JobFieldMigrationTest`가 seed·마이그레이션·enum의 일치를 검사합니다. 기술은 직군끼리 중복될 수 있으며 고유 기술 seed는 82개입니다.
 - 직군·직무 코드는 `domain/job/entity/JobFieldCode.java`, `JobPositionCode.java`와 일치합니다 (Java 루트: `src/main/java/com/wardk/meeteam_backend/`).
 - `GET /api/v1/jobs/options`의 현재 응답에서 직무·기술 ID를 조회합니다. DB ID를 고정값으로 가정하지 않습니다. seed 파일 존재는 운영 DB 적용 또는 시작 시 자동 실행의 증거가 아닙니다.
 - 요청 형식과 회원 검색의 직군 ID 제약은 [프론트엔드 API 값 가이드](api/FRONTEND_API_VALUES.md)를 참고합니다.

@@ -42,7 +42,17 @@ public enum JobPositionCode {
     // 인프라/운영 (INFRA_OPERATION)
     DEVOPS_ARCHITECT(JobFieldCode.INFRA_OPERATION, "DevOps 엔지니어/아키텍처", "DevOps Engineer"),
     QA(JobFieldCode.INFRA_OPERATION, "QA", "QA Engineer"),
-    CLOUD_ENGINEER(JobFieldCode.INFRA_OPERATION, "Cloud 엔지니어", "Cloud Engineer");
+    CLOUD_ENGINEER(JobFieldCode.INFRA_OPERATION, "Cloud 엔지니어", "Cloud Engineer"),
+
+    // 마케팅 (MARKETING)
+    PERFORMANCE_MARKETER(JobFieldCode.MARKETING, "퍼포먼스 마케터", "Performance Marketer"),
+    CONTENT_MARKETER(JobFieldCode.MARKETING, "콘텐츠 마케터", "Content Marketer"),
+    BRAND_MARKETER(JobFieldCode.MARKETING, "브랜드 마케터", "Brand Marketer"),
+
+    // 데이터 (DATA)
+    DATA_ANALYST(JobFieldCode.DATA, "데이터 분석가", "Data Analyst"),
+    DATA_ENGINEER(JobFieldCode.DATA, "데이터 엔지니어", "Data Engineer"),
+    DATA_SCIENTIST(JobFieldCode.DATA, "데이터 사이언티스트", "Data Scientist");
 
     private final JobFieldCode jobFieldCode;
     private final String displayName;

@@ -1,5 +1,7 @@
 package com.wardk.meeteam_backend.utround1unit;
 
+import com.wardk.meeteam_backend.domain.job.entity.JobFieldCode;
+import com.wardk.meeteam_backend.domain.job.entity.JobPositionCode;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
@@ -9,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -61,10 +65,29 @@ class UtRound1MigrationTest {
         }
     }
 
-    /** Mirrors the column types Hibernate generates on MySQL for the pre-V9 entities. */
+    /** Mirrors the column types Hibernate generates on MySQL for the pre-V9 entities V9 touches. */
     static void createOldSchema(Statement sql) throws Exception {
         sql.execute("CREATE TABLE project (project_id BIGINT PRIMARY KEY, "
                 + "project_category ENUM('CAPSTONE','CLUB','CREATIVE_SEMESTER','ETC'))");
+        createJobTables(sql, oldEnum(JobFieldCode.values(), 6), oldEnum(JobPositionCode.values(), 21));
+    }
+
+    /** The first {@code count} constants are the codes that existed before V9. */
+    private static String oldEnum(Enum<?>[] codes, int count) {
+        return Arrays.stream(codes).limit(count).map(c -> "'" + c.name() + "'")
+                .collect(Collectors.joining(",", "ENUM(", ")"));
+    }
+
+    static void createJobTables(Statement sql, String fieldCodeType, String positionCodeType) throws Exception {
+        sql.execute("CREATE TABLE job_field (job_field_id BIGINT AUTO_INCREMENT PRIMARY KEY, code " + fieldCodeType
+                + " NOT NULL UNIQUE, name VARCHAR(100) NOT NULL)");
+        sql.execute("CREATE TABLE job_position (job_position_id BIGINT AUTO_INCREMENT PRIMARY KEY, job_field_id BIGINT NOT NULL, "
+                + "code " + positionCodeType + " NOT NULL UNIQUE, name VARCHAR(100) NOT NULL)");
+        sql.execute("CREATE TABLE tech_stack (tech_stack_id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) NOT NULL, "
+                + "CONSTRAINT uk_tech_stack_name UNIQUE (name))");
+        sql.execute("CREATE TABLE job_field_tech_stack (job_field_tech_stack_id BIGINT AUTO_INCREMENT PRIMARY KEY, "
+                + "job_field_id BIGINT NOT NULL, tech_stack_id BIGINT NOT NULL, "
+                + "CONSTRAINT uk_job_field_tech_stack_pair UNIQUE (job_field_id, tech_stack_id))");
     }
 
     static void applyV9(Connection connection) throws Exception {

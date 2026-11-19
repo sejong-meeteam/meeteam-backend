@@ -9,7 +9,9 @@ INSERT INTO job_field (code, name) VALUES
     ('FRONTEND', '프론트'),
     ('BACKEND', '백엔드'),
     ('AI', 'AI'),
-    ('INFRA_OPERATION', '인프라/운영')
+    ('INFRA_OPERATION', '인프라/운영'),
+    ('MARKETING', '마케팅'),
+    ('DATA', '데이터')
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- JobPosition (직무)
@@ -58,6 +60,20 @@ INSERT INTO job_position (job_field_id, code, name) VALUES
     ((SELECT job_field_id FROM job_field WHERE code = 'INFRA_OPERATION'), 'CLOUD_ENGINEER', 'Cloud 엔지니어')
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
+-- 마케팅
+INSERT INTO job_position (job_field_id, code, name) VALUES
+    ((SELECT job_field_id FROM job_field WHERE code = 'MARKETING'), 'PERFORMANCE_MARKETER', '퍼포먼스 마케터'),
+    ((SELECT job_field_id FROM job_field WHERE code = 'MARKETING'), 'CONTENT_MARKETER', '콘텐츠 마케터'),
+    ((SELECT job_field_id FROM job_field WHERE code = 'MARKETING'), 'BRAND_MARKETER', '브랜드 마케터')
+ON DUPLICATE KEY UPDATE name = VALUES(name);
+
+-- 데이터
+INSERT INTO job_position (job_field_id, code, name) VALUES
+    ((SELECT job_field_id FROM job_field WHERE code = 'DATA'), 'DATA_ANALYST', '데이터 분석가'),
+    ((SELECT job_field_id FROM job_field WHERE code = 'DATA'), 'DATA_ENGINEER', '데이터 엔지니어'),
+    ((SELECT job_field_id FROM job_field WHERE code = 'DATA'), 'DATA_SCIENTIST', '데이터 사이언티스트')
+ON DUPLICATE KEY UPDATE name = VALUES(name);
+
 -- =====================================================
 -- TechStack (기술 스택)
 -- =====================================================
@@ -88,7 +104,11 @@ INSERT INTO tech_stack (name) VALUES
     ('Hugging Face'), ('OpenAI API'), ('LangChain'), ('RAG'), ('Vector DB'),
     ('MLflow'), ('Airflow'), ('Kubernetes'),
     -- 인프라/운영
-    ('Prometheus/Grafana'), ('Postman'), ('Playwright'), ('Selenium'), ('Cypress')
+    ('Prometheus/Grafana'), ('Postman'), ('Playwright'), ('Selenium'), ('Cypress'),
+    -- 마케팅
+    ('Meta Ads'), ('Google Ads'), ('Canva'),
+    -- 데이터
+    ('R'), ('SQL'), ('Tableau'), ('Excel')
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- =====================================================
@@ -162,4 +182,20 @@ WHERE jf.code = 'INFRA_OPERATION'
     'GitHub Actions', 'Prometheus/Grafana', 'Postman',
     'Jira', 'Playwright', 'Selenium', 'Cypress'
   )
+ON DUPLICATE KEY UPDATE job_field_id = VALUES(job_field_id);
+
+-- 마케팅
+INSERT INTO job_field_tech_stack (job_field_id, tech_stack_id)
+SELECT jf.job_field_id, ts.tech_stack_id
+FROM job_field jf, tech_stack ts
+WHERE jf.code = 'MARKETING'
+  AND ts.name IN ('Google Analytics', 'Meta Ads', 'Google Ads', 'Notion', 'Figma', 'Canva')
+ON DUPLICATE KEY UPDATE job_field_id = VALUES(job_field_id);
+
+-- 데이터
+INSERT INTO job_field_tech_stack (job_field_id, tech_stack_id)
+SELECT jf.job_field_id, ts.tech_stack_id
+FROM job_field jf, tech_stack ts
+WHERE jf.code = 'DATA'
+  AND ts.name IN ('Python', 'R', 'SQL', 'Pandas', 'Tableau', 'Excel')
 ON DUPLICATE KEY UPDATE job_field_id = VALUES(job_field_id);

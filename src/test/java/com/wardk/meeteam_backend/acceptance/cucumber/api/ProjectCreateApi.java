@@ -151,6 +151,8 @@ public class ProjectCreateApi {
             case "기획" -> JobFieldCode.PLANNING;
             case "AI" -> JobFieldCode.AI;
             case "인프라", "인프라/운영" -> JobFieldCode.INFRA_OPERATION;
+            case "마케팅" -> JobFieldCode.MARKETING;
+            case "데이터" -> JobFieldCode.DATA;
             default -> throw new IllegalArgumentException("알 수 없는 직군: " + fieldName);
         };
     }
@@ -276,6 +278,8 @@ public class ProjectCreateApi {
             case PLANNING -> JobPositionCode.PRODUCT_MANAGER;
             case AI -> JobPositionCode.MACHINE_LEARNING;
             case INFRA_OPERATION -> JobPositionCode.DEVOPS_ARCHITECT;
+            case MARKETING -> JobPositionCode.PERFORMANCE_MARKETER;
+            case DATA -> JobPositionCode.DATA_ANALYST;
         };
     }
 
@@ -290,6 +294,8 @@ public class ProjectCreateApi {
             case PLANNING -> List.of(1L, 2L, 3L);       // Notion, Jira, Figma
             case AI -> List.of(31L, 60L, 61L);          // Python, PyTorch, TensorFlow
             case INFRA_OPERATION -> List.of(45L, 46L, 70L); // Docker, AWS, Kubernetes
+            case MARKETING -> List.of(4L, 76L, 78L);    // Google Analytics, Meta Ads, Canva
+            case DATA -> List.of(31L, 79L, 80L);        // Python, R, SQL
         };
     }
 
