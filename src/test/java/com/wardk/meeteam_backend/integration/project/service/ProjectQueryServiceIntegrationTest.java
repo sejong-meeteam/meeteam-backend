@@ -296,7 +296,7 @@ class ProjectQueryServiceIntegrationTest {
             void filters_by_category_and_platform() {
                 // when - CAPSTONE + WEB
                 Slice<ProjectCardResponse> result = search(
-                        new ProjectSearchRequest(null, ProjectCategory.CAPSTONE, null, PlatformCategory.WEB, null, null)
+                        new ProjectSearchRequest(null, ProjectCategory.CAPSTONE, null, PlatformCategory.WEB, null, null, null)
                 );
 
                 // then
@@ -312,7 +312,7 @@ class ProjectQueryServiceIntegrationTest {
             void filters_by_keyword_and_recruitment() {
                 // when - "개발" + RECRUITING
                 Slice<ProjectCardResponse> result = search(
-                        new ProjectSearchRequest("개발", null, Recruitment.RECRUITING, null, null, null)
+                        new ProjectSearchRequest("개발", null, Recruitment.RECRUITING, null, null, null, null)
                 );
 
                 // then
@@ -402,27 +402,27 @@ class ProjectQueryServiceIntegrationTest {
     }
 
     private ProjectSearchRequest requestWithKeyword(String keyword) {
-        return new ProjectSearchRequest(keyword, null, null, null, null, null);
+        return new ProjectSearchRequest(keyword, null, null, null, null, null, null);
     }
 
     private ProjectSearchRequest requestWithCategory(ProjectCategory category) {
-        return new ProjectSearchRequest(null, category, null, null, null, null);
+        return new ProjectSearchRequest(null, category, null, null, null, null, null);
     }
 
     private ProjectSearchRequest requestWithRecruitment(Recruitment recruitment) {
-        return new ProjectSearchRequest(null, null, recruitment, null, null, null);
+        return new ProjectSearchRequest(null, null, recruitment, null, null, null, null);
     }
 
     private ProjectSearchRequest requestWithPlatform(PlatformCategory platform) {
-        return new ProjectSearchRequest(null, null, null, platform, null, null);
+        return new ProjectSearchRequest(null, null, null, platform, null, null, null);
     }
 
     private ProjectSearchRequest requestWithSort(ProjectSortType sort) {
-        return new ProjectSearchRequest(null, null, null, null, null, sort);
+        return new ProjectSearchRequest(null, null, null, null, null, null, sort);
     }
 
     private ProjectSearchRequest emptyRequest() {
-        return new ProjectSearchRequest(null, null, null, null, null, null);
+        return new ProjectSearchRequest(null, null, null, null, null, null, null);
     }
 
     private Slice<ProjectCardResponse> search(ProjectSearchRequest request) {

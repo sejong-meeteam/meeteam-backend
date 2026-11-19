@@ -1,6 +1,7 @@
 package com.wardk.meeteam_backend.web.project.dto.request;
 
 import com.wardk.meeteam_backend.domain.job.entity.JobFieldCode;
+import com.wardk.meeteam_backend.domain.project.entity.MeetingMode;
 import com.wardk.meeteam_backend.domain.project.entity.PlatformCategory;
 import com.wardk.meeteam_backend.domain.project.entity.ProjectCategory;
 import com.wardk.meeteam_backend.domain.project.entity.Recruitment;
@@ -28,6 +29,9 @@ public record ProjectSearchRequest(
         @Schema(description = "직군 (PLANNING, DESIGN, FRONTEND, BACKEND, AI, INFRA_OPERATION)", example = "BACKEND")
         JobFieldCode jobField,
 
+        @Schema(description = "회의 방식 (ONLINE을 고르면 HYBRID도 함께 반환)", example = "ONLINE")
+        MeetingMode meetingMode,
+
         @Schema(description = "정렬 타입 (LATEST: 최신순, DEADLINE: 마감임박순)", example = "LATEST")
         ProjectSortType sort
 ) {
@@ -52,6 +56,7 @@ public record ProjectSearchRequest(
         condition.setRecruitment(recruitment);
         condition.setPlatformCategory(platformCategory);
         condition.setJobFieldCode(jobField);
+        condition.setMeetingMode(meetingMode);
         return condition;
     }
 }

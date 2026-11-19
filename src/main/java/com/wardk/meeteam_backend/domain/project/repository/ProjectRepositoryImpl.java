@@ -39,6 +39,7 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
                     platformCategoryEq(condition.getPlatformCategory()),
                     recruitmentEq(condition.getRecruitment()),
                     jobFieldCodeEq(condition.getJobFieldCode()),
+                    meetingModeMatches(condition.getMeetingMode()),
                     projectCategoryEq(condition.getProjectCategory()),
                     keywordContains(condition.getKeyword())
                 )
@@ -59,6 +60,7 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
                     platformCategoryEq(condition.getPlatformCategory()),
                     recruitmentEq(condition.getRecruitment()),
                     jobFieldCodeEq(condition.getJobFieldCode()),
+                    meetingModeMatches(condition.getMeetingMode()),
                     projectCategoryEq(condition.getProjectCategory()),
                     keywordContains(condition.getKeyword())
                 )
@@ -102,6 +104,10 @@ public class ProjectRepositoryImpl extends Querydsl4RepositorySupport implements
         return (recruitment == null) ? null : project.recruitmentStatus.eq(recruitment);
     }
 
+
+    private BooleanExpression meetingModeMatches(MeetingMode meetingMode) {
+        return (meetingMode == null) ? null : project.collaboration.meetingMode.in(meetingMode.searchMatches());
+    }
 
     private BooleanExpression projectCategoryEq(ProjectCategory projectCategory) {
         return (projectCategory == null) ? null : project.projectCategory.eq(projectCategory);

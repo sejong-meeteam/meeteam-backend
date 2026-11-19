@@ -27,7 +27,7 @@ public class ProjectQueryController {
 
 
     @Operation(summary = "프로젝트 검색",
-            description = "키워드, 카테고리, 모집상태, 플랫폼, 분야 조건으로 검색. 정렬: LATEST(최신순), DEADLINE(마감임박순). 무한스크롤 최적화(Slice).")
+            description = "키워드, 카테고리, 모집상태, 플랫폼, 분야, 회의 방식 조건으로 검색. 회의 방식 ONLINE은 HYBRID도 포함. 정렬: LATEST(최신순), DEADLINE(마감임박순). 무한스크롤 최적화(Slice).")
     @GetMapping("/api/v1/projects/search")
     public SuccessResponse<Slice<ProjectCardResponse>> searchProjects(
             @ParameterObject @Validated ProjectSearchRequest request,

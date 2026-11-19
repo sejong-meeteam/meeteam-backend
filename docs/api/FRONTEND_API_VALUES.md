@@ -90,7 +90,7 @@
 
 `PLANNING`, `DESIGN`, `FRONTEND`, `BACKEND`, `AI`, `INFRA_OPERATION` (6개).
 
-- 프로젝트 검색 `GET /api/v1/projects/search`는 `jobField` enum 필터입니다.
+- 프로젝트 검색 `GET /api/v1/projects/search`는 `jobField` enum 필터입니다. 회의 방식 필터 `meetingMode`는 8절을 참고합니다.
 - 회원 검색 `GET /api/v1/members/search`는 `jobFieldId` (Long), `techStackNames` (문자열 목록), `name`을 받습니다. `jobField` enum 필터가 아닙니다.
 - 현재 jobs/options의 직군 객체에는 `code`, `name`만 있고 직군 ID는 없습니다. 회원 검색용 ID 확보 방법은 별도 계약 확인이 필요합니다. 직군 ID 1~6을 가정하지 않습니다.
 
@@ -111,6 +111,18 @@
 | `GET /api/v1/projects/{projectId}/edit` (수정 prefill) | 세 필드 포함 |
 | `GET /api/v1/projects/{projectId}` 상세 응답 | 세 필드 포함 |
 | 프로젝트 카드 (`/api/v1/projects/search`, 메인 페이지 등 `ProjectCardResponse`) | `meetingMode`, `weeklyHours`만 포함 |
+
+### 검색 필터 `meetingMode`
+
+`GET /api/v1/projects/search?meetingMode=ONLINE`처럼 단일 값으로 보냅니다. 생략하면 지금처럼 회의 방식과 관계없이 모두 반환합니다.
+
+| 요청 값 | 반환 대상 |
+|---|---|
+| `ONLINE` | `ONLINE`과 `HYBRID` ("온라인 가능" 필터) |
+| `OFFLINE` | `OFFLINE`만 |
+| `HYBRID` | `HYBRID`만 |
+
+회의 방식을 입력하지 않은 프로젝트(`null`)는 필터를 보낼 때 결과에 포함되지 않습니다.
 
 범위를 벗어나면 기존 검증 오류와 같은 `400` / `COMMON400` 응답과 다음 메시지를 돌려줍니다: "주 예상 활동 시간은 1~40시간으로 입력해 주세요.", "협업 방식 메모는 최대 100자까지 입력 가능합니다."
 
