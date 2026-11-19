@@ -64,6 +64,10 @@
 | `CREATIVE_SEMESTER` | 창의학기제 |
 | `CLUB` | 동아리 |
 | `ETC` | 기타 |
+| `STUDY` | 스터디 |
+| `CONTEST` | 공모전 |
+
+`STUDY`·`CONTEST`는 `V9__ut_round1_project_job_application.sql` 적용 후 저장할 수 있습니다. 기존 값의 코드와 순서는 바뀌지 않았습니다.
 
 ## 5. PlatformCategory (플랫폼)
 
@@ -97,7 +101,7 @@
 | 직무 코드 | JobPositionCode 21개 (프로필 수정은 ID 배열) |
 | 기술 | seed 75개, 요청은 ID / 표시 순서 객체 또는 ID 배열 |
 | 성별 | 2개 |
-| 프로젝트 카테고리 | 4개 |
+| 프로젝트 카테고리 | 6개 |
 | 플랫폼 | 3개 |
 | 지원 상태 | 4개, 결정 요청 의도는 2개 |
 | 직군 코드 | 6개, 회원 검색은 직군 ID |

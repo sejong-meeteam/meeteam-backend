@@ -82,7 +82,7 @@ Mockito로 의존성을 대체하며, 빈 등록 조건은 `ApplicationContextRu
 
 - 프로젝트명·리더명 검색, 카테고리·플랫폼·모집 상태 필터를 확인합니다.
 - 최신순·마감일순 정렬, 요청 크기와 `hasNext()`, DTO 필드 변환을 확인합니다.
-- 실제 카테고리는 `CAPSTONE`, `CREATIVE_SEMESTER`, `CLUB`, `ETC`입니다. 예전 `AI_TECH`·`HEALTHCARE`를 현재 값으로 사용하지 않습니다.
+- 실제 카테고리는 `CAPSTONE`, `CREATIVE_SEMESTER`, `CLUB`, `ETC`, `STUDY`, `CONTEST`입니다. 검색 시드 데이터는 앞의 3개만 사용합니다. 예전 `AI_TECH`·`HEALTHCARE`를 현재 값으로 사용하지 않습니다.
 - 시드 데이터의 ID·날짜·FK 관계·기대 개수를 함께 관리합니다. SQL 주석보다 실제 데이터와 테스트의 기대값을 대조합니다.
 - 엔티티 생성에는 `MemberFixture`, `ProjectFixture`를 사용하고, 저장이 필요하면 Repository를 명시적으로 사용합니다. `MemberFixture`의 실제 메서드는 `defaultMember()`, `withName(String)`, `withEmail(String, String)`입니다. `ProjectFixture`는 `defaultProject(Member)`, `withName(String, Member)`, `withEndDate(LocalDate, Member, String)`, `withCategory(ProjectCategory, Member, String)`, `withPlatform(PlatformCategory, Member, String)`, `withRecruitment(Recruitment, Member, String)`을 제공합니다. `create()`·`createAndSave()` 픽스처 메서드는 없습니다.
 - 반복 요청 생성·검색 호출은 기존 테스트의 `requestWithCategory()`, `defaultPageable()`, `search()` 같은 헬퍼로 구분합니다.
