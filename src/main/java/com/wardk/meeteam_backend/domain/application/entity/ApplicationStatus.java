@@ -16,4 +16,11 @@ public enum ApplicationStatus {
     CANCELLED("취소됨");
 
     private final String displayName;
+
+    /**
+     * 리더가 승인 또는 거절해 처리를 마친 상태인지 여부.
+     */
+    public boolean isDecided() {
+        return this == ACCEPTED || this == REJECTED;
+    }
 }

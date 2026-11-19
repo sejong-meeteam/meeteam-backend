@@ -42,18 +42,22 @@ public record ProjectApplicationListResponse(
         @Schema(description = "지원 일시")
         LocalDateTime appliedAt,
 
-        @Schema(description = "포지션 현재 모집 인원")
+        @Schema(description = "승인·거절 처리 일시 (PENDING이면 null)")
+        LocalDateTime decidedAt,
+
+        @Schema(description = "포지션 현재 모집 인원 (포지션이 삭제됐으면 null)")
         Integer currentCount,
 
-        @Schema(description = "포지션 총 모집 인원")
+        @Schema(description = "포지션 총 모집 인원 (포지션이 삭제됐으면 null)")
         Integer recruitmentCount,
 
-        @Schema(description = "포지션 모집 마감 여부")
+        @Schema(description = "포지션 모집 마감 여부 (포지션이 삭제됐으면 null)")
         Boolean isRecruitmentFull
 ) {
     /**
      * Protected-context factory. Call only after the service has verified that the requester is
-     * the actual creator of this application's project.
+     * the actual creator of this application's project. {@code recruitmentState} is null when the
+     * applied position no longer exists.
      */
     public static ProjectApplicationListResponse forAuthorizedProjectCreator(ProjectApplication application, RecruitmentState recruitmentState) {
         return new ProjectApplicationListResponse(
@@ -67,9 +71,10 @@ public record ProjectApplicationListResponse(
                 application.getMotivation(),
                 application.getStatus().getDisplayName(),
                 application.getCreatedAt(),
-                recruitmentState.getCurrentCount(),
-                recruitmentState.getRecruitmentCount(),
-                recruitmentState.isClosed()
+                application.getDecidedAt(),
+                recruitmentState == null ? null : recruitmentState.getCurrentCount(),
+                recruitmentState == null ? null : recruitmentState.getRecruitmentCount(),
+                recruitmentState == null ? null : recruitmentState.isClosed()
         );
     }
 }

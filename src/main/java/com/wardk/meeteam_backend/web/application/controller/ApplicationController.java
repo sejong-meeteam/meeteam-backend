@@ -1,5 +1,6 @@
 package com.wardk.meeteam_backend.web.application.controller;
 
+import com.wardk.meeteam_backend.domain.application.entity.ApplicationStatus;
 import com.wardk.meeteam_backend.domain.application.service.ProjectApplicationService;
 import com.wardk.meeteam_backend.global.response.SuccessResponse;
 import com.wardk.meeteam_backend.global.response.ErrorCode;
@@ -8,6 +9,7 @@ import com.wardk.meeteam_backend.web.application.dto.request.*;
 import com.wardk.meeteam_backend.web.application.dto.response.*;
 import com.wardk.meeteam_backend.web.auth.dto.CustomSecurityUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -46,13 +48,19 @@ public class ApplicationController {
         return SuccessResponse.onSuccess(response);
     }
 
-    @Operation(summary = "프로젝트 지원자 목록 조회", description = "프로젝트 리더가 지원자 목록을 조회합니다.")
+    @Operation(summary = "프로젝트 지원자 목록 조회", description = "프로젝트 리더가 지원자 목록을 조회합니다. status로 대기(PENDING, 기본값)·승인(ACCEPTED)·거절(REJECTED) 지원자를 고릅니다.")
     @GetMapping("/api/v1/projects/{projectId}/applications")
     public SuccessResponse<List<ProjectApplicationListResponse>> getApplicationList(
             @PathVariable Long projectId,
+            @Parameter(description = "PENDING(기본값), ACCEPTED, REJECTED", example = "PENDING")
+            @RequestParam(defaultValue = "PENDING") ApplicationStatus status,
             @AuthenticationPrincipal CustomSecurityUserDetails userDetails) {
 
-        List<ProjectApplicationListResponse> applicationList = applicationService.getApplicationList(projectId, requireAuthenticatedEmail(userDetails));
+        String requesterEmail = requireAuthenticatedEmail(userDetails);
+        if (status == ApplicationStatus.CANCELLED) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST);
+        }
+        List<ProjectApplicationListResponse> applicationList = applicationService.getApplicationList(projectId, status, requesterEmail);
         return SuccessResponse.onSuccess(applicationList);
     }
 
@@ -76,6 +84,9 @@ public class ApplicationController {
             @RequestBody @Validated ApplicationDecisionRequest request,
             @AuthenticationPrincipal CustomSecurityUserDetails userDetails) {
 
+        if (!request.decision().isDecided()) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST);
+        }
         ApplicationDecisionResponse response = applicationService.decide(applicationId, request, userDetails.getUsername());
 
         return SuccessResponse.onSuccess(response);

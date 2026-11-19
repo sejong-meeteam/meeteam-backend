@@ -65,11 +65,37 @@ class UtRound1MigrationTest {
         }
     }
 
+    @Test
+    void decidedApplicationsAreBackfilledFromTheirLastEditAndOthersStayUndecided() throws Exception {
+        try (Connection connection = DriverManager.getConnection("jdbc:h2:mem:ut_round1_decided;MODE=MySQL", "sa", "")) {
+            Statement sql = connection.createStatement();
+            createOldSchema(sql);
+            sql.execute("INSERT INTO project_member_application VALUES "
+                    + "(1, 'PENDING', '2026-10-01 10:00:00', '2026-10-01 10:00:00'), "
+                    + "(2, 'ACCEPTED', '2026-10-01 10:00:00', '2026-10-03 09:30:00'), "
+                    + "(3, 'REJECTED', '2026-10-02 10:00:00', '2026-10-04 18:00:00'), "
+                    + "(4, 'CANCELLED', '2026-10-02 10:00:00', '2026-10-05 08:00:00')");
+
+            applyV9(connection);
+
+            try (var rows = sql.executeQuery("SELECT CAST(decided_at AS VARCHAR) FROM project_member_application ORDER BY project_application_id")) {
+                assertTrue(rows.next()); assertNull(rows.getString(1));
+                assertTrue(rows.next()); assertTrue(rows.getString(1).startsWith("2026-10-03 09:30:00"));
+                assertTrue(rows.next()); assertTrue(rows.getString(1).startsWith("2026-10-04 18:00:00"));
+                assertTrue(rows.next()); assertNull(rows.getString(1));
+                assertFalse(rows.next());
+            }
+        }
+    }
+
     /** Mirrors the column types Hibernate generates on MySQL for the pre-V9 entities V9 touches. */
     static void createOldSchema(Statement sql) throws Exception {
         sql.execute("CREATE TABLE project (project_id BIGINT PRIMARY KEY, "
                 + "project_category ENUM('CAPSTONE','CLUB','CREATIVE_SEMESTER','ETC'))");
         createJobTables(sql, oldEnum(JobFieldCode.values(), 6), oldEnum(JobPositionCode.values(), 21));
+        sql.execute("CREATE TABLE project_member_application (project_application_id BIGINT PRIMARY KEY, "
+                + "status ENUM('ACCEPTED','CANCELLED','PENDING','REJECTED') NOT NULL, "
+                + "created_at DATETIME(6), edited_at DATETIME(6))");
     }
 
     /** The first {@code count} constants are the codes that existed before V9. */

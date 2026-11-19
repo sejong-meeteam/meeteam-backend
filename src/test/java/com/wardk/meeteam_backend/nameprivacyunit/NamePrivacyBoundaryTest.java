@@ -63,7 +63,7 @@ class NamePrivacyBoundaryTest {
         ProjectApplicationRepository applications = mock(ProjectApplicationRepository.class);
         when(projects.findActiveById(10L)).thenReturn(Optional.of(projectOwnedBy("actual-creator@example.invalid")));
         var service = applicationService(projects, applications);
-        assertForbidden(() -> service.getApplicationList(10L, "ordinary-team-member@example.invalid"));
+        assertForbidden(() -> service.getApplicationList(10L, ApplicationStatus.PENDING, "ordinary-team-member@example.invalid"));
         assertForbidden(() -> service.getApplicationDetail(10L, 99L, "ordinary-team-member@example.invalid"));
         verifyNoInteractions(applications);
     }
@@ -76,7 +76,7 @@ class NamePrivacyBoundaryTest {
         when(projects.findActiveById(10L)).thenReturn(Optional.of(project));
         ProjectApplicationServiceImpl service = applicationService(projects, applications);
 
-        assertForbidden(() -> service.getApplicationList(10L, "other-project-leader@example.invalid"));
+        assertForbidden(() -> service.getApplicationList(10L, ApplicationStatus.PENDING, "other-project-leader@example.invalid"));
         assertForbidden(() -> service.getApplicationDetail(10L, 99L, "other-project-leader@example.invalid"));
         verifyNoInteractions(applications);
     }

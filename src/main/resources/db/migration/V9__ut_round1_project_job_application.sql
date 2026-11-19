@@ -47,3 +47,8 @@ FROM job_field jf, tech_stack ts
 WHERE jf.code = 'DATA'
   AND ts.name IN ('Python', 'R', 'SQL', 'Pandas', 'Tableau', 'Excel')
 ON DUPLICATE KEY UPDATE job_field_id = VALUES(job_field_id);
+
+-- C4. Decision time for the leader's processed-applicant history.
+-- Existing decided rows are backfilled from edited_at: once ACCEPTED/REJECTED, nothing else updates the row.
+ALTER TABLE project_member_application ADD COLUMN decided_at DATETIME(6) NULL;
+UPDATE project_member_application SET decided_at = edited_at WHERE status IN ('ACCEPTED', 'REJECTED');

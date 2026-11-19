@@ -11,6 +11,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 /**
  * 프로젝트 지원서 엔티티.
  */
@@ -44,6 +46,10 @@ public class ProjectApplication extends BaseEntity {
     @Column(nullable = false)
     private ApplicationStatus status;
 
+    /** 승인·거절된 시각. 처리 전이거나 취소된 지원서는 null입니다. */
+    @Column(name = "decided_at")
+    private LocalDateTime decidedAt;
+
     @Builder
     private ProjectApplication(Project project, Member applicant, JobPosition jobPosition, String motivation) {
         this.project = project;
@@ -64,13 +70,14 @@ public class ProjectApplication extends BaseEntity {
 
     public void updateStatus(ApplicationStatus status) {
         this.status = status;
+        this.decidedAt = status.isDecided() ? LocalDateTime.now() : null;
     }
 
     /**
      * 지원서를 거절 처리합니다.
      */
     public void reject() {
-        this.status = ApplicationStatus.REJECTED;
+        updateStatus(ApplicationStatus.REJECTED);
     }
 
     /**
@@ -85,7 +92,7 @@ public class ProjectApplication extends BaseEntity {
      * PENDING 상태에서만 취소 가능합니다.
      */
     public void cancel() {
-        this.status = ApplicationStatus.CANCELLED;
+        updateStatus(ApplicationStatus.CANCELLED);
     }
 
     /**

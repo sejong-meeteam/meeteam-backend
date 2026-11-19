@@ -92,7 +92,19 @@
 
 승인/거절 요청 필드는 `applicationStatus`가 아니라 `decision`이며, 의도된 요청은 `{ "decision": "ACCEPTED" }` 또는 `REJECTED`입니다. 취소는 `DELETE /api/v1/members/me/applications/{applicationId}`를 사용합니다.
 
-**구현상 주의:** `ApplicationDecisionRequest`는 enum 전체를 타입으로 받고 `@NotNull`만 검증합니다. `ProjectApplicationServiceImpl.processDecision`도 ACCEPTED 외에는 거절 처리 경로로 들어가므로 PENDING/CANCELLED를 서버가 차단한다고 보장할 수 없습니다. 별도 구현 검토가 필요한 항목이며 프론트는 승인·거절 두 값만 보내야 합니다.
+`PENDING`·`CANCELLED`를 `decision`으로 보내면 잠금·저장 없이 `400` / `COMMON400`을 돌려줍니다.
+
+### 지원자 목록 `status` 필터와 `decidedAt`
+
+`GET /api/v1/projects/{projectId}/applications?status=ACCEPTED`처럼 리더가 처리한 지원자를 다시 볼 수 있습니다.
+
+| `status` | 반환 대상 | 정렬 |
+|---|---|---|
+| 생략 또는 `PENDING` | 대기 지원자 (지금과 같음) | 지원 시각 최신순 |
+| `ACCEPTED` | 승인한 지원자 | 처리 시각 최신순 |
+| `REJECTED` | 거절한 지원자 (포지션 삭제로 자동 거절된 지원자 포함) | 처리 시각 최신순 |
+
+`CANCELLED`나 그 밖의 값은 `400`입니다. 응답 항목에는 `decidedAt`(승인·거절 시각, ISO-8601 `LocalDateTime`)이 추가됐고 `PENDING`이면 `null`입니다. V9 이전에 처리된 지원서는 마지막 수정 시각으로 채웠습니다. 지원한 포지션이 이후 삭제된 거절 지원자는 `currentCount`, `recruitmentCount`, `isRecruitmentFull`이 `null`입니다. `status` 필드는 지금처럼 표시 이름("대기중", "승인됨", "거절됨")입니다.
 
 ## 7. JobFieldCode (직군)
 
@@ -143,7 +155,7 @@
 | 성별 | 2개 |
 | 프로젝트 카테고리 | 6개 |
 | 플랫폼 | 3개 |
-| 지원 상태 | 4개, 결정 요청 의도는 2개 |
+| 지원 상태 | 4개, 결정 요청은 2개만 허용, 목록 필터는 3개 |
 | 직군 코드 | 8개, 회원 검색은 직군 ID |
 | 회의 방식 | 3개, 모두 선택 항목 |
 
@@ -153,4 +165,5 @@
 - `web/auth/dto/sejong/SejongRegisterRequest.java`, `web/auth/dto/register/MemberJobPositionRequest.java`, `TechStackOrderRequest.java`
 - `web/member/dto/request/MemberProfileUpdateRequest.java`, `web/member/controller/MemberController.java`
 - `web/project/dto/request/ProjectPostRequest.java`, `ProjectEditRequest.java`, `ProjectRecruitRequest.java`, `RecruitmentEditRequest.java`
+- `web/application/controller/ApplicationController.java`, `web/application/dto/response/ProjectApplicationListResponse.java`
 - `web/job/dto/response/JobOptionResponse.java`, `JobFieldOptionResponse.java` (Java 경로 기준 루트: `src/main/java/com/wardk/meeteam_backend/`)

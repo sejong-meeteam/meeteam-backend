@@ -1,5 +1,6 @@
 package com.wardk.meeteam_backend.domain.application.service;
 
+import com.wardk.meeteam_backend.domain.application.entity.ApplicationStatus;
 import com.wardk.meeteam_backend.web.auth.dto.CustomSecurityUserDetails;
 import com.wardk.meeteam_backend.web.application.dto.request.*;
 import com.wardk.meeteam_backend.web.application.dto.response.*;
@@ -19,7 +20,7 @@ public interface ProjectApplicationService {
     /**
      * 프로젝트 지원자 목록 조회 (리더 전용).
      */
-    List<ProjectApplicationListResponse> getApplicationList(Long projectId, String requesterEmail);
+    List<ProjectApplicationListResponse> getApplicationList(Long projectId, ApplicationStatus status, String requesterEmail);
 
     /**
      * 프로젝트 지원 상세 조회 (리더 전용).

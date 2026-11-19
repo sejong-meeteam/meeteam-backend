@@ -1,5 +1,6 @@
 package com.wardk.meeteam_backend.domain.application.repository;
 
+import com.wardk.meeteam_backend.domain.application.entity.ApplicationStatus;
 import com.wardk.meeteam_backend.domain.application.entity.ProjectApplication;
 import com.wardk.meeteam_backend.domain.member.entity.Member;
 import com.wardk.meeteam_backend.domain.project.entity.Project;
@@ -14,6 +15,9 @@ public interface ProjectApplicationRepository extends JpaRepository<ProjectAppli
 
     boolean existsByProjectAndApplicant(Project project, Member member);
 
+    /**
+     * 리더용 지원자 목록. 처리 시각(처리 전이면 지원 시각)이 최근인 순서입니다.
+     */
     @Query("""
             SELECT a FROM ProjectApplication a
             JOIN FETCH a.applicant
@@ -21,10 +25,13 @@ public interface ProjectApplicationRepository extends JpaRepository<ProjectAppli
             JOIN FETCH jp.jobField
             WHERE a.project.id = :projectId
             AND a.project.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE
-            AND a.status = 'PENDING'
-            ORDER BY a.createdAt DESC
+            AND a.status = :status
+            ORDER BY COALESCE(a.decidedAt, a.createdAt) DESC, a.id DESC
             """)
-    List<ProjectApplication> findPendingByProjectIdOrderByCreatedAtDesc(Long projectId);
+    List<ProjectApplication> findByProjectIdAndStatusOrderByLatest(
+            @Param("projectId") Long projectId,
+            @Param("status") ApplicationStatus status
+    );
 
     @Query("SELECT a FROM ProjectApplication a " +
             "JOIN FETCH a.project p " +

@@ -32,6 +32,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 프로젝트 지원 서비스 구현체.
@@ -155,7 +158,7 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProjectApplicationListResponse> getApplicationList(Long projectId, String requesterEmail) {
+    public List<ProjectApplicationListResponse> getApplicationList(Long projectId, ApplicationStatus status, String requesterEmail) {
         Project project = projectRepository.findActiveById(projectId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_NOT_FOUND));
 
@@ -163,16 +166,14 @@ public class ProjectApplicationServiceImpl implements ProjectApplicationService 
             throw new CustomException(ErrorCode.PROJECT_MEMBER_FORBIDDEN);
         }
 
-        List<RecruitmentState> recruitmentStates = recruitmentStateRepository.findByProjectIdWithJobPosition(projectId);
+        // A rejected applicant's position may have been deleted since, so the lookup can miss.
+        Map<Long, RecruitmentState> recruitmentByPositionId = recruitmentStateRepository.findByProjectIdWithJobPosition(projectId)
+                .stream()
+                .collect(Collectors.toMap(rs -> rs.getJobPosition().getId(), Function.identity()));
 
-        return applicationRepository.findPendingByProjectIdOrderByCreatedAtDesc(projectId).stream()
-                .map(application -> {
-                    RecruitmentState recruitmentState = recruitmentStates.stream()
-                            .filter(rs -> rs.getJobPosition().getId().equals(application.getJobPosition().getId()))
-                            .findFirst()
-                            .orElseThrow(() -> new CustomException(ErrorCode.RECRUITMENT_NOT_FOUND));
-                    return ProjectApplicationListResponse.forAuthorizedProjectCreator(application, recruitmentState);
-                })
+        return applicationRepository.findByProjectIdAndStatusOrderByLatest(projectId, status).stream()
+                .map(application -> ProjectApplicationListResponse.forAuthorizedProjectCreator(
+                        application, recruitmentByPositionId.get(application.getJobPosition().getId())))
                 .toList();
     }
 

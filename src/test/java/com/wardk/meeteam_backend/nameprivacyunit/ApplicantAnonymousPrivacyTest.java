@@ -17,7 +17,7 @@ class ApplicantAnonymousPrivacyTest {
  }
  @Test void anonymousRequestsCannotReachApplicantNameServices() {
   var service=mock(ProjectApplicationService.class);var controller=new ApplicationController(service);
-  assertThatThrownBy(()->controller.getApplicationList(10L,null)).isInstanceOfSatisfying(CustomException.class,e->assertThat(e.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
+  assertThatThrownBy(()->controller.getApplicationList(10L,com.wardk.meeteam_backend.domain.application.entity.ApplicationStatus.PENDING,null)).isInstanceOfSatisfying(CustomException.class,e->assertThat(e.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
   assertThatThrownBy(()->controller.getApplicationDetail(10L,99L,null)).isInstanceOfSatisfying(CustomException.class,e->assertThat(e.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
   verifyNoInteractions(service);
  }
