@@ -3,6 +3,7 @@ package com.wardk.meeteam_backend.domain.notification.entity;
 import com.wardk.meeteam_backend.domain.member.entity.Member;
 import com.wardk.meeteam_backend.domain.notification.NotificationEvent;
 import com.wardk.meeteam_backend.domain.project.entity.Project;
+import com.wardk.meeteam_backend.domain.proposal.entity.ProjectProposal;
 import com.wardk.meeteam_backend.global.entity.BaseEntity;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
@@ -45,14 +46,21 @@ public class Notification extends BaseEntity {
     @JoinColumn(name = "project_id")
     private Project project;
 
+    @Nullable
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "proposal_id")
+    private ProjectProposal proposal;
+
     @Builder
-    private Notification(Member receiver, NotificationType type,boolean isRead, Project project, Long actorId, Long applicationId) {
+    private Notification(Member receiver, NotificationType type, boolean isRead, Project project, Long actorId,
+                         Long applicationId, ProjectProposal proposal) {
         this.receiver = receiver;
         this.type = type;
         this.isRead = isRead;
         this.project = project;
         this.actorId = actorId;
         this.applicationId = applicationId;
+        this.proposal = proposal;
     }
 
 

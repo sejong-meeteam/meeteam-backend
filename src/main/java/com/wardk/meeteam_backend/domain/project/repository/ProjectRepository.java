@@ -24,6 +24,13 @@ public interface ProjectRepository extends JpaRepository<Project, Long> , Projec
             "WHERE p.id = :id AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")
     Optional<Project> findActiveById(Long id);
 
+    @Query("SELECT p FROM Project p " +
+            "WHERE p.creator.id = :leaderId " +
+            "AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE " +
+            "AND p.recruitmentStatus = com.wardk.meeteam_backend.domain.project.entity.Recruitment.RECRUITING " +
+            "ORDER BY p.id DESC")
+    List<Project> findRecruitingByLeaderId(@Param("leaderId") Long leaderId);
+
     @Query("SELECT DISTINCT p FROM Project p " +
             "JOIN FETCH p.recruitments r " +
             "WHERE p.id = :projectId AND p.visibility = com.wardk.meeteam_backend.domain.project.entity.ProjectVisibility.VISIBLE")

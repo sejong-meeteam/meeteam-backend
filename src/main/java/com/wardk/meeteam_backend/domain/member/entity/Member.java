@@ -16,6 +16,7 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Getter
@@ -272,6 +273,16 @@ public class Member extends BaseEntity {
                     com.wardk.meeteam_backend.global.response.ErrorCode.SEJONG_PORTAL_ERROR);
         }
         if (needsSchoolDepartment()) this.department = profile.department();
+    }
+
+    /** Members without a verified school account never match anyone, including each other. */
+    public boolean isSameUniversityAs(Member other) {
+        Optional<University> mine = University.fromEmail(email);
+        return mine.isPresent() && mine.equals(University.fromEmail(other.email));
+    }
+
+    public boolean isActive() {
+        return !isDeleted() && !isSuspended();
     }
 
     public boolean isLocalAdminAccount() {
