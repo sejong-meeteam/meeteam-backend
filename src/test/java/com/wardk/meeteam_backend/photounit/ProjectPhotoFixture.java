@@ -57,6 +57,7 @@ final class ProjectPhotoFixture {
                 PlatformCategory.WEB, null, null, null, RecruitmentDeadlineType.RECRUITMENT_COMPLETED,
                 JobPositionCode.JAVA_SPRING,
                 List.of(new RecruitmentEditCommand(RECRUITMENT_ID, JobFieldCode.BACKEND,
-                        JobPositionCode.JAVA_SPRING, 2, List.of(TECH_ID))), false, removeImage);
+                        JobPositionCode.JAVA_SPRING, 2, List.of(TECH_ID))), false, removeImage,
+                ProjectCollaboration.EMPTY);
     }
 }

@@ -83,6 +83,9 @@ public class Project extends BaseEntity {
 
     private String communicationChannelUrl;
 
+    @Embedded
+    private ProjectCollaboration collaboration;
+
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProjectMember> members = new ArrayList<>();
 
@@ -122,7 +125,8 @@ public class Project extends BaseEntity {
             LocalDate endDate,
             boolean isDeleted,
             String githubRepositoryUrl,
-            String communicationChannelUrl
+            String communicationChannelUrl,
+            ProjectCollaboration collaboration
     ) {
         this.creator = creator;
         this.name = name;
@@ -136,6 +140,7 @@ public class Project extends BaseEntity {
         this.endDate = endDate;
         this.githubRepositoryUrl = githubRepositoryUrl;
         this.communicationChannelUrl = communicationChannelUrl;
+        this.collaboration = collaboration;
         this.isDeleted = isDeleted;
         this.visibility = isDeleted ? ProjectVisibility.DELETED : ProjectVisibility.VISIBLE;
     }
@@ -168,6 +173,7 @@ public class Project extends BaseEntity {
                 .endDate(deadline.resolveEndDate())
                 .githubRepositoryUrl(command.githubRepositoryUrl())
                 .communicationChannelUrl(command.communicationChannelUrl())
+                .collaboration(command.collaboration())
                 .isDeleted(false)
                 .build();
     }
@@ -312,6 +318,11 @@ public class Project extends BaseEntity {
         }
     }
 
+    /** Hibernate loads an embeddable whose columns are all null as null. */
+    public ProjectCollaboration getCollaboration() {
+        return collaboration == null ? ProjectCollaboration.EMPTY : collaboration;
+    }
+
     public String getCategoryDisplayName() {
         if (projectCategory == null) {
             return null;
@@ -373,6 +384,7 @@ public class Project extends BaseEntity {
             String communicationChannelUrl,
             LocalDate endDate,
             RecruitmentDeadlineType recruitmentDeadlineType,
+            ProjectCollaboration collaboration,
             String imageUrl
     ) {
         this.name = name;
@@ -383,6 +395,7 @@ public class Project extends BaseEntity {
         this.communicationChannelUrl = communicationChannelUrl;
         this.endDate = endDate;
         this.recruitmentDeadlineType = recruitmentDeadlineType;
+        this.collaboration = collaboration;
         if (imageUrl != null) {
             this.imageUrl = imageUrl;
         }

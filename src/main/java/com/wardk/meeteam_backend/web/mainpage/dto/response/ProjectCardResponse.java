@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.wardk.meeteam_backend.domain.project.entity.MeetingMode;
 import com.wardk.meeteam_backend.domain.project.entity.Project;
 import com.wardk.meeteam_backend.domain.recruitment.entity.RecruitmentState;
 
@@ -34,6 +35,8 @@ public class ProjectCardResponse implements Serializable {
 	private boolean isLiked; // 좋아요 여부
 	private int likeCount; // 좋아요 수
 	private List<RecruitmentPositionResponse> recruitments; // 포지션별 모집 현황
+	private MeetingMode meetingMode; // 회의 방식 (미입력 시 null)
+	private Integer weeklyHours; // 주 예상 활동 시간 (미입력 시 null)
 
 	@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS)
 	private GithubActivity githubActivity;
@@ -64,6 +67,8 @@ public class ProjectCardResponse implements Serializable {
 			.isLiked(isLiked)
 			.likeCount(project.getLikeCount())
 			.recruitments(recruitments)
+			.meetingMode(project.getCollaboration().getMeetingMode())
+			.weeklyHours(project.getCollaboration().getWeeklyHours())
 			.build();
 	}
 }

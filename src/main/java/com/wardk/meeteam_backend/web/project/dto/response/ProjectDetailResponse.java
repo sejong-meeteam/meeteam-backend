@@ -1,8 +1,10 @@
 package com.wardk.meeteam_backend.web.project.dto.response;
 
+import com.wardk.meeteam_backend.domain.project.entity.MeetingMode;
 import com.wardk.meeteam_backend.domain.project.entity.PlatformCategory;
 import com.wardk.meeteam_backend.domain.project.entity.Project;
 import com.wardk.meeteam_backend.domain.project.entity.ProjectCategory;
+import com.wardk.meeteam_backend.domain.project.entity.ProjectCollaboration;
 import com.wardk.meeteam_backend.domain.project.entity.Recruitment;
 import com.wardk.meeteam_backend.domain.project.entity.RecruitmentDeadlineType;
 import com.wardk.meeteam_backend.domain.projectmember.entity.ProjectMember;
@@ -54,6 +56,16 @@ public record ProjectDetailResponse(
 
         @Schema(description = "소통 채널 URL (디스코드, 슬랙 등)")
         String communicationChannelUrl,
+
+        // 협업 방식 (모두 선택 항목, 미입력 시 null)
+        @Schema(description = "회의 방식 (ONLINE, OFFLINE, HYBRID)")
+        MeetingMode meetingMode,
+
+        @Schema(description = "주 예상 활동 시간 (1~40)")
+        Integer weeklyHours,
+
+        @Schema(description = "협업 방식 메모 (최대 100자)")
+        String meetingNote,
 
         // 프로젝트 리더 정보
         @Schema(description = "프로젝트 리더 정보")
@@ -109,6 +121,7 @@ public record ProjectDetailResponse(
      */
     public static ProjectDetailResponse from(Project project, boolean isLiked, boolean isLeader) {
         ProjectLeaderResponse leader = ProjectLeaderResponse.from(project.getCreator());
+        ProjectCollaboration collaboration = project.getCollaboration();
 
         List<RecruitmentDetailResponse> recruitments = project.getRecruitments().stream()
                 .map(RecruitmentDetailResponse::from)
@@ -131,6 +144,9 @@ public record ProjectDetailResponse(
                 project.getEndDate(),
                 project.getGithubRepositoryUrl(),
                 project.getCommunicationChannelUrl(),
+                collaboration.getMeetingMode(),
+                collaboration.getWeeklyHours(),
+                collaboration.getMeetingNote(),
                 leader,
                 recruitments,
                 members,

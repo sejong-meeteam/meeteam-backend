@@ -1,13 +1,17 @@
 package com.wardk.meeteam_backend.web.project.dto.request;
 
 import com.wardk.meeteam_backend.domain.job.entity.JobPositionCode;
+import com.wardk.meeteam_backend.domain.project.entity.MeetingMode;
 import com.wardk.meeteam_backend.domain.project.entity.PlatformCategory;
 import com.wardk.meeteam_backend.domain.project.entity.ProjectCategory;
+import com.wardk.meeteam_backend.domain.project.entity.ProjectCollaboration;
 import com.wardk.meeteam_backend.domain.project.entity.RecruitmentDeadlineType;
 import com.wardk.meeteam_backend.domain.project.service.dto.ProjectEditCommand;
 import com.wardk.meeteam_backend.domain.project.service.dto.RecruitmentEditCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -69,7 +73,19 @@ public record ProjectEditRequest(
         Boolean confirmDeletePositionsWithPendingApplicants,
 
         @Schema(description = "기존 커버 이미지 삭제 여부. 생략/false면 유지하며, true와 새 파일은 동시에 보낼 수 없습니다.", example = "false")
-        Boolean removeImage
+        Boolean removeImage,
+
+        @Schema(description = "회의 방식 (선택, ONLINE: 온라인, OFFLINE: 대면, HYBRID: 온·오프라인 병행). 생략하면 비웁니다.", example = "HYBRID")
+        MeetingMode meetingMode,
+
+        @Min(value = 1, message = "주 예상 활동 시간은 1~40시간으로 입력해 주세요.")
+        @Max(value = 40, message = "주 예상 활동 시간은 1~40시간으로 입력해 주세요.")
+        @Schema(description = "주 예상 활동 시간 (선택, 1~40). 생략하면 비웁니다.", example = "6")
+        Integer weeklyHours,
+
+        @Size(max = 100, message = "협업 방식 메모는 최대 100자까지 입력 가능합니다.")
+        @Schema(description = "협업 방식 메모 (선택, 최대 100자). 생략하면 비웁니다.", example = "화요일 저녁 7시 디스코드")
+        String meetingNote
 ) {
     /**
      * Request DTO를 도메인 Command로 변환합니다.
@@ -91,7 +107,8 @@ public record ProjectEditRequest(
                 this.leaderJobPositionCode,
                 recruitmentCommands,
                 Boolean.TRUE.equals(this.confirmDeletePositionsWithPendingApplicants),
-                Boolean.TRUE.equals(this.removeImage)
+                Boolean.TRUE.equals(this.removeImage),
+                new ProjectCollaboration(this.meetingMode, this.weeklyHours, this.meetingNote)
         );
     }
 }

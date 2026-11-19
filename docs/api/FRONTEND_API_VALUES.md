@@ -94,6 +94,26 @@
 - 회원 검색 `GET /api/v1/members/search`는 `jobFieldId` (Long), `techStackNames` (문자열 목록), `name`을 받습니다. `jobField` enum 필터가 아닙니다.
 - 현재 jobs/options의 직군 객체에는 `code`, `name`만 있고 직군 ID는 없습니다. 회원 검색용 ID 확보 방법은 별도 계약 확인이 필요합니다. 직군 ID 1~6을 가정하지 않습니다.
 
+## 8. 프로젝트 협업 방식 (선택 항목)
+
+지원 전에 회의 방식과 시간 부담을 보여 주기 위한 값입니다. 세 필드 모두 선택이며, 입력하지 않았거나 V9 이전에 만든 프로젝트는 `null`입니다.
+
+| 필드 | 타입 | 규칙 | 표시 예 |
+|---|---|---|---|
+| `meetingMode` | `ONLINE` / `OFFLINE` / `HYBRID` | 생략 가능 | 온라인 / 대면 / 온·오프라인 병행 |
+| `weeklyHours` | 정수 | 1~40, 생략 가능 | "주 N시간 예상" |
+| `meetingNote` | 문자열 | 100자 이하, 생략 가능. 공백만 보내면 `null`로 저장 | "화요일 저녁 7시 디스코드" |
+
+| API | 위치 |
+|---|---|
+| `POST /api/v1/projects` | multipart `request` JSON에 세 필드 추가 |
+| `PUT /api/v1/projects/{projectId}` | multipart `request` JSON에 세 필드 추가. **보낸 값으로 교체**하므로 생략하면 `null`로 지워집니다. 수정 화면은 prefill 값을 다시 보내야 합니다 |
+| `GET /api/v1/projects/{projectId}/edit` (수정 prefill) | 세 필드 포함 |
+| `GET /api/v1/projects/{projectId}` 상세 응답 | 세 필드 포함 |
+| 프로젝트 카드 (`/api/v1/projects/search`, 메인 페이지 등 `ProjectCardResponse`) | `meetingMode`, `weeklyHours`만 포함 |
+
+범위를 벗어나면 기존 검증 오류와 같은 `400` / `COMMON400` 응답과 다음 메시지를 돌려줍니다: "주 예상 활동 시간은 1~40시간으로 입력해 주세요.", "협업 방식 메모는 최대 100자까지 입력 가능합니다."
+
 ## 요약
 
 | 대상 | 타입 / 개수 |
@@ -105,10 +125,11 @@
 | 플랫폼 | 3개 |
 | 지원 상태 | 4개, 결정 요청 의도는 2개 |
 | 직군 코드 | 6개, 회원 검색은 직군 ID |
+| 회의 방식 | 3개, 모두 선택 항목 |
 
 ## 코드 근거
 
-- `domain/job/entity/JobFieldCode.java`, `JobPositionCode.java`, `domain/project/entity/ProjectCategory.java`, `domain/application/entity/ApplicationStatus.java`
+- `domain/job/entity/JobFieldCode.java`, `JobPositionCode.java`, `domain/project/entity/ProjectCategory.java`, `MeetingMode.java`, `ProjectCollaboration.java`, `domain/application/entity/ApplicationStatus.java`
 - `web/auth/dto/sejong/SejongRegisterRequest.java`, `web/auth/dto/register/MemberJobPositionRequest.java`, `TechStackOrderRequest.java`
 - `web/member/dto/request/MemberProfileUpdateRequest.java`, `web/member/controller/MemberController.java`
 - `web/project/dto/request/ProjectPostRequest.java`, `ProjectEditRequest.java`, `ProjectRecruitRequest.java`, `RecruitmentEditRequest.java`

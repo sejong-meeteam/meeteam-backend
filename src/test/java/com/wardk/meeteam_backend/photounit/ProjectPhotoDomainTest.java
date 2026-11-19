@@ -11,7 +11,7 @@ class ProjectPhotoDomainTest {
         var command = command(false);
         project.updateBasicInfo(command.name(), command.description(), command.projectCategory(),
                 command.platformCategory(), command.githubRepositoryUrl(), command.communicationChannelUrl(),
-                command.endDate(), command.recruitmentDeadlineType(), imageUrl);
+                command.endDate(), command.recruitmentDeadlineType(), command.collaboration(), imageUrl);
     }
 
     @Test

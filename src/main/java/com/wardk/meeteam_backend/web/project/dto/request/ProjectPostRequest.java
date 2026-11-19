@@ -2,13 +2,17 @@ package com.wardk.meeteam_backend.web.project.dto.request;
 
 
 import com.wardk.meeteam_backend.domain.job.entity.JobPositionCode;
+import com.wardk.meeteam_backend.domain.project.entity.MeetingMode;
 import com.wardk.meeteam_backend.domain.project.entity.PlatformCategory;
 import com.wardk.meeteam_backend.domain.project.entity.ProjectCategory;
+import com.wardk.meeteam_backend.domain.project.entity.ProjectCollaboration;
 import com.wardk.meeteam_backend.domain.project.entity.RecruitmentDeadlineType;
 import com.wardk.meeteam_backend.domain.project.service.dto.ProjectPostCommand;
 import com.wardk.meeteam_backend.domain.project.service.dto.RecruitmentCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -70,6 +74,18 @@ public class ProjectPostRequest {
     @Schema(description = "프로젝트 마감일")
     private LocalDate endDate;
 
+    @Schema(description = "회의 방식 (선택, ONLINE: 온라인, OFFLINE: 대면, HYBRID: 온·오프라인 병행)", example = "HYBRID")
+    private MeetingMode meetingMode;
+
+    @Min(value = 1, message = "주 예상 활동 시간은 1~40시간으로 입력해 주세요.")
+    @Max(value = 40, message = "주 예상 활동 시간은 1~40시간으로 입력해 주세요.")
+    @Schema(description = "주 예상 활동 시간 (선택, 1~40)", example = "6")
+    private Integer weeklyHours;
+
+    @Size(max = 100, message = "협업 방식 메모는 최대 100자까지 입력 가능합니다.")
+    @Schema(description = "협업 방식 메모 (선택, 최대 100자)", example = "화요일 저녁 7시 디스코드")
+    private String meetingNote;
+
     /**
      * 웹 요청 DTO를 도메인 커맨드 DTO로 변환합니다.
      */
@@ -88,7 +104,8 @@ public class ProjectPostRequest {
                 this.creatorJobPositionCode,
                 recruitmentCommands,
                 this.recruitmentDeadlineType,
-                this.endDate
+                this.endDate,
+                new ProjectCollaboration(this.meetingMode, this.weeklyHours, this.meetingNote)
         );
     }
 }

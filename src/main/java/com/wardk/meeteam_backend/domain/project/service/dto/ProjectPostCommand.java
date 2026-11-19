@@ -3,6 +3,7 @@ package com.wardk.meeteam_backend.domain.project.service.dto;
 import com.wardk.meeteam_backend.domain.job.entity.JobPositionCode;
 import com.wardk.meeteam_backend.domain.project.entity.PlatformCategory;
 import com.wardk.meeteam_backend.domain.project.entity.ProjectCategory;
+import com.wardk.meeteam_backend.domain.project.entity.ProjectCollaboration;
 import com.wardk.meeteam_backend.domain.project.entity.RecruitmentDeadlineType;
 
 import java.time.LocalDate;
@@ -23,6 +24,7 @@ public record ProjectPostCommand(
         JobPositionCode creatorJobPositionCode,
         List<RecruitmentCommand> recruitments,
         RecruitmentDeadlineType recruitmentDeadlineType,
-        LocalDate endDate
+        LocalDate endDate,
+        ProjectCollaboration collaboration
 ) {
 }

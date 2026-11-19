@@ -1,5 +1,6 @@
 package com.wardk.meeteam_backend.web.project.dto.response;
 
+import com.wardk.meeteam_backend.domain.project.entity.MeetingMode;
 import com.wardk.meeteam_backend.domain.project.entity.PlatformCategory;
 import com.wardk.meeteam_backend.domain.project.entity.Project;
 import com.wardk.meeteam_backend.domain.project.entity.ProjectCategory;
@@ -42,6 +43,15 @@ public record ProjectEditPrefillResponse(
 
         @Schema(description = "프로젝트 마감일", example = "2025-12-31")
         LocalDate endDate,
+
+        @Schema(description = "회의 방식 (ONLINE, OFFLINE, HYBRID)", example = "HYBRID")
+        MeetingMode meetingMode,
+
+        @Schema(description = "주 예상 활동 시간 (1~40)", example = "6")
+        Integer weeklyHours,
+
+        @Schema(description = "협업 방식 메모 (최대 100자)", example = "화요일 저녁 7시 디스코드")
+        String meetingNote,
 
         @Schema(description = "프로젝트 커버 이미지 URL")
         String imageUrl,
@@ -86,6 +96,9 @@ public record ProjectEditPrefillResponse(
                 .githubRepositoryUrl(project.getGithubRepositoryUrl())
                 .communicationChannelUrl(project.getCommunicationChannelUrl())
                 .endDate(project.getEndDate())
+                .meetingMode(project.getCollaboration().getMeetingMode())
+                .weeklyHours(project.getCollaboration().getWeeklyHours())
+                .meetingNote(project.getCollaboration().getMeetingNote())
                 .imageUrl(project.getImageUrl())
                 .leaderJobFieldName(leader.getJobPosition().getJobField().getName())
                 .leaderJobPositionName(leader.getJobPosition().getName())

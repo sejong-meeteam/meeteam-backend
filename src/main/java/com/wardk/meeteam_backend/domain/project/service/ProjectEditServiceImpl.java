@@ -120,6 +120,7 @@ public class ProjectEditServiceImpl implements ProjectEditService {
                 command.communicationChannelUrl(),
                 command.endDate(),
                 command.recruitmentDeadlineType(),
+                command.collaboration(),
                 imageUrl
         );
 
